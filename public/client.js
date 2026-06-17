@@ -43,7 +43,9 @@ function setStatus(text, cls) {
 }
 
 function setDisplayLangUI() {
-  $('displayLangLive').value = state.displayLang;
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === state.displayLang);
+  });
 }
 
 // --- join room ---
@@ -312,14 +314,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   // (typing-lang toggle removed; auto-detect on send)
-  $('displayLangLive').addEventListener('change', (e) => {
-    state.displayLang = e.target.value;
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const lang = btn.dataset.lang;
+    if (!lang || lang === state.displayLang) return;
+    state.displayLang = lang;
+    setDisplayLangUI();
     if (state.ws && state.ws.readyState === WebSocket.OPEN) {
       state.ws.send(JSON.stringify({ type: 'setLang', displayLang: state.displayLang }));
     }
     renderMessages();
     try { localStorage.setItem('chatDisplayLang', state.displayLang); } catch (e) {}
   });
+});
 
   // restore name + room from localStorage (and accept ?room=XXX in URL for fixed rooms)
   const urlRoom = new URLSearchParams(location.search).get('room');

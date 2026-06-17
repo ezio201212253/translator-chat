@@ -86,7 +86,7 @@ function joinRoom() {
 
 function connect() {
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const url = `${proto}//${location.host}/ws`;
+  const url = `${proto}//${location.host}`;
   setStatus('連線中…');
 
   try {

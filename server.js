@@ -12,7 +12,7 @@ const { WebSocketServer, WebSocket } = require('ws');
 
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocketServer({ server, path: '/ws' });
+const wss = new WebSocketServer({ server }); // root path: Render edge passes ws upgrades through
 
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');

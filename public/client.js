@@ -49,16 +49,12 @@ function setDisplayLangUI() {
   });
 }
 
-// Check whether a stored translation is "valid" — i.e., the upstream API
-// actually returned a translated string. If the saved entry equals the
-// original and the source language differs, the translation must have
-// failed earlier and we need to fetch a fresh one.
+// Check whether we already have any translation result stored for this lang.
+// (Even if the API returned the same text as original — that's still our best
+// answer and we must save it, otherwise we'd re-fetch forever.)
 function hasValidTranslation(m, lang) {
   if (lang === m.originalLang) return true;
-  const t = m.translations && m.translations[lang];
-  if (!t) return false;
-  if (t === m.original) return false;
-  return true;
+  return m.translations && typeof m.translations[lang] === 'string';
 }
 
 async function ensureTranslation(m, lang) {
@@ -73,11 +69,17 @@ async function ensureTranslation(m, lang) {
       body: JSON.stringify({ text: m.original, from: m.originalLang, to: lang })
     });
     const j = await r.json();
-    if (j.translatedText && j.translatedText !== m.original) {
+    // Save whatever we got (even empty or same as original). This marks
+    // the slot as "attempted" so we don't loop. pickDisplayText falls
+    // back to m.original for empty/undefined entries.
+    if (typeof j.translatedText === 'string') {
       m.translations[lang] = j.translatedText;
+    } else {
+      m.translations[lang] = ''; // mark as attempted but unavailable
     }
   } catch (e) {
     console.error('lazy translate fail', e);
+    m.translations[lang] = ''; // mark to prevent re-fetch storm
   } finally {
     state.pendingTranslations.delete(m.id + '|' + lang);
   }

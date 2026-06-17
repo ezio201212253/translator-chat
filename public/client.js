@@ -42,11 +42,6 @@ function setStatus(text, cls) {
   el.className = 'status' + (cls ? ' ' + cls : '');
 }
 
-function setTypingLangButton() {
-  const sel = $('typingLangLive');
-  if (sel) sel.value = state.typingLang;
-}
-
 function setDisplayLangUI() {
   $('displayLangLive').value = state.displayLang;
 }
@@ -56,7 +51,6 @@ function joinRoom() {
   const room = $('roomInput').value.trim().toUpperCase();
   const name = $('nameInput').value.trim();
   const displayLang = $('displayLang').value;
-  const typingLang = $('typingLang').value;
 
   if (!/^[A-Z0-9]{4,8}$/.test(room)) {
     alert('房號必須是 4-8 個英文字母或數字');
@@ -72,20 +66,17 @@ function joinRoom() {
     localStorage.setItem('chatName', name);
     localStorage.setItem('chatRoom', room);
     localStorage.setItem('chatDisplayLang', displayLang);
-    localStorage.setItem('chatTypingLang', typingLang);
   } catch (e) { /* ignore quota errors */ }
 
   state.room = room;
   state.name = name;
   state.displayLang = displayLang;
-  state.typingLang = typingLang;
 
   $('loginPanel').classList.add('hidden');
   $('chatPanel').classList.remove('hidden');
   $('roomDisplay').textContent = room;
   $('meName').textContent = name;
   setDisplayLangUI();
-  setTypingLangButton();
   $('messageInput').focus();
 
   connect();
@@ -184,6 +175,30 @@ async function translateToAll(text, from) {
   return out;
 }
 
+// --- auto-detect source language ---
+// zh-TW if CJK present, id if common Indonesian words present, otherwise en
+const ID_HINTS = ['saya','anda','yang','tidak','untuk','dengan','ada','halo','baik','benar','salah','bisa','akan','sudah','belum','mau','makan','rumah','kerja','hari','ini','itu','kami','kita','mereka','dia','pak','bu','mas','mbak','bapak','ibu','selamat','pagi','siang','malam','terima','kasih','maaf','tolong','bantu','bukan','ya','tidak'];
+function autoDetectLang(text) {
+  if (/[一-鿿]/.test(text)) return 'zh-TW';
+  const lower = text.toLowerCase();
+  let idScore = 0, enScore = 0;
+  for (const w of ID_HINTS) {
+    const re = new RegExp('\\b' + w + '\\b', 'gi');
+    const m = lower.match(re);
+    if (m) idScore += m.length;
+  }
+  // common English function words
+  for (const w of ['the','is','are','was','were','i','you','he','she','we','they','and','or','but','please','thank','hello','hi','yes','no','can','will','would','could','should','have','has','had','do','does','did','not']) {
+    const re = new RegExp('\\b' + w + '\\b', 'gi');
+    const m = lower.match(re);
+    if (m) enScore += m.length;
+  }
+  if (idScore > enScore && idScore > 0) return 'id';
+  if (enScore > 0) return 'en';
+  // fallback: pure ascii → en, else zh-TW
+  return /^[A-Za-z0-9\s\.,!\?\-'"()]+$/.test(text) ? 'en' : 'zh-TW';
+}
+
 // --- send ---
 async function sendMessage() {
   const input = $('messageInput');
@@ -196,7 +211,7 @@ async function sendMessage() {
 
   input.value = '';
   autoGrowTextarea(input);
-  const from = state.typingLang;
+  const from = autoDetectLang(text);
   // Translate first to other langs, send all 3 versions
   let translations = { [from]: text };
   if (text.length <= 1500) {
@@ -296,7 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
       sendMessage();
     }
   });
-  // (typing-lang toggle button removed; use topbar selector instead)
+  // (typing-lang toggle removed; auto-detect on send)
   $('displayLangLive').addEventListener('change', (e) => {
     state.displayLang = e.target.value;
     if (state.ws && state.ws.readyState === WebSocket.OPEN) {
@@ -304,12 +319,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     renderMessages();
     try { localStorage.setItem('chatDisplayLang', state.displayLang); } catch (e) {}
-  });
-
-  $('typingLangLive').addEventListener('change', (e) => {
-    state.typingLang = e.target.value;
-    try { localStorage.setItem('chatTypingLang', state.typingLang); } catch (e) {}
-    $('messageInput').focus();
   });
 
   // restore name + room from localStorage (and accept ?room=XXX in URL for fixed rooms)
@@ -323,10 +332,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (savedRoom) $('roomInput').value = savedRoom;
   if (urlRoom) $('roomInput').value = urlRoom.toUpperCase();
   if (savedDisplay && ['en', 'id', 'zh-TW'].includes(savedDisplay)) $('displayLang').value = savedDisplay;
-  if (savedTyping && ['en', 'id', 'zh-TW'].includes(savedTyping)) {
-    $('typingLang').value = savedTyping;
-    state.typingLang = savedTyping;
-  }
   if (savedDisplay && ['en', 'id', 'zh-TW'].includes(savedDisplay)) {
     state.displayLang = savedDisplay;
   }

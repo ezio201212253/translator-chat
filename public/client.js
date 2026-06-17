@@ -15,6 +15,7 @@ const state = {
   typingLang: 'zh-TW',
   messages: [],
   showOriginal: new Set(), // message ids currently showing original
+  pendingTranslations: new Set(), // "msgId|lang" keys
   reconnectAttempts: 0
 };
 
@@ -46,6 +47,47 @@ function setDisplayLangUI() {
   document.querySelectorAll('.lang-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.lang === state.displayLang);
   });
+}
+
+// Check whether a stored translation is "valid" — i.e., the upstream API
+// actually returned a translated string. If the saved entry equals the
+// original and the source language differs, the translation must have
+// failed earlier and we need to fetch a fresh one.
+function hasValidTranslation(m, lang) {
+  if (lang === m.originalLang) return true;
+  const t = m.translations && m.translations[lang];
+  if (!t) return false;
+  if (t === m.original) return false;
+  return true;
+}
+
+async function ensureTranslation(m, lang) {
+  if (m.system) return;
+  if (hasValidTranslation(m, lang)) return;
+  if (state.pendingTranslations.has(m.id + '|' + lang)) return;
+  state.pendingTranslations.add(m.id + '|' + lang);
+  try {
+    const r = await fetch('/api/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: m.original, from: m.originalLang, to: lang })
+    });
+    const j = await r.json();
+    if (j.translatedText && j.translatedText !== m.original) {
+      m.translations[lang] = j.translatedText;
+    }
+  } catch (e) {
+    console.error('lazy translate fail', e);
+  } finally {
+    state.pendingTranslations.delete(m.id + '|' + lang);
+  }
+}
+
+async function ensureAllTranslations(lang) {
+  const tasks = state.messages
+    .filter(m => !m.system && !hasValidTranslation(m, lang))
+    .map(m => ensureTranslation(m, lang));
+  if (tasks.length) await Promise.all(tasks);
 }
 
 // --- join room ---
@@ -109,15 +151,21 @@ function connect() {
     }));
   };
 
-  state.ws.onmessage = (e) => {
+  state.ws.onmessage = async (e) => {
     let msg;
     try { msg = JSON.parse(e.data); } catch { return; }
     if (msg.type === 'history') {
       state.messages = msg.messages || [];
+      // Fill missing translations for current display language
+      await ensureAllTranslations(state.displayLang);
       renderMessages();
       scrollToBottom();
     } else if (msg.type === 'message') {
       state.messages.push(msg.message);
+      // Lazy-fill translation if needed
+      if (!msg.message.system) {
+        ensureTranslation(msg.message, state.displayLang).then(() => renderMessages());
+      }
       renderMessages();
       scrollToBottom();
     } else if (msg.type === 'presence') {
@@ -315,15 +363,19 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   // (typing-lang toggle removed; auto-detect on send)
   document.querySelectorAll('.lang-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
+  btn.addEventListener('click', async () => {
     const lang = btn.dataset.lang;
     if (!lang || lang === state.displayLang) return;
+    setStatus('切換中，翻譯中…');
     state.displayLang = lang;
     setDisplayLangUI();
     if (state.ws && state.ws.readyState === WebSocket.OPEN) {
       state.ws.send(JSON.stringify({ type: 'setLang', displayLang: state.displayLang }));
     }
+    // Re-translate any missing translations on demand, then re-render
+    await ensureAllTranslations(lang);
     renderMessages();
+    setStatus('已連線', 'connected');
     try { localStorage.setItem('chatDisplayLang', state.displayLang); } catch (e) {}
   });
 });

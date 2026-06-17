@@ -229,18 +229,33 @@ async function translateToAll(text, from) {
 
 // --- auto-detect source language ---
 // zh-TW if CJK present, id if common Indonesian words present, otherwise en
-const ID_HINTS = ['saya','anda','yang','tidak','untuk','dengan','ada','halo','baik','benar','salah','bisa','akan','sudah','belum','mau','makan','rumah','kerja','hari','ini','itu','kami','kita','mereka','dia','pak','bu','mas','mbak','bapak','ibu','selamat','pagi','siang','malam','terima','kasih','maaf','tolong','bantu','bukan','ya','tidak'];
+const ID_HINTS = [
+  // pronouns & people
+  'saya','aku','kamu','kamu','dia','kami','kita','mereka','beliau','anda','pak','bu','mas','mbak','bapak','ibu','om','tante','kakak','adik','suami','istri','anak','teman','orang',
+  // question words
+  'apa','siapa','mana','kapan','dimana','kemana','darimana','mengapa','kenapa','gimana','bagaimana','berapa','yang','mana','kapan','dimana',
+  // common verbs
+  'adalah','yaitu','akan','sudah','belum','sedang','masih','telah','sedang','pernah','bisa','dapat','boleh','harus','mau','ingin','makan','minum','tidur','pergi','datang','lihat','dengar','bicara','bilang','kata','pikir','rasa','tahu','tidak','bukan','ada','jadi','mau','mulai','selesai','coba','bantu','tolong','pakai','ambil','kasih','beri','cari','temu','jumpa','kenal','tanya','jawab','panggil','masuk','keluar','naik','turun','duduk','berdiri','jalan','lari','buka','tutup','cuci','bersih','tulis','baca','kirim','terima','beli','jual','bayar','pinjam','simpan','bawa','taruh','pindah','tinggal','tinggal','pulang','naik','turun',
+  // function words
+  'yang','dan','atau','tapi','tetapi','kalau','jika','bila','ketika','saat','waktu','setelah','sebelum','sambil','sementara','supaya','agar','karena','sebab','akibat','untuk','bagi','dengan','tanpa','pada','dari','ke','di','ini','itu','sini','situ','sana','mana','begitu','demikian','begini','jadi','lalu','kemudian','sekarang','tadi','nanti','besok','kemarin','hari','minggu','bulan','tahun','jam','menit','detik','pagi','siang','malam','subuh','sore',
+  // adjectives & misc
+  'baik','buruk','besar','kecil','baru','lama','tinggi','rendah','jauh','dekat','panjang','pendek','banyak','sedikit','semua','beberapa','satu','dua','tiga','empat','lima','enam','tujuh','delapan','sembilan','sepuluh','seratus','seribu','juta','pertama','kedua','terakhir','benar','salah','mudah','sulit','bagus','hebat','cantik','jelek','murah','mahal','cepat','lambat','keras','lunak','panas','dingin','hangat','sejuk','basah','kering','penuh','kosong','terbuka','tertutup','sama','berbeda','lain','rumah','sekolah','kantor','jalan','mobil','motor','sepeda','pesawat','kapal','kereta','bis','uang','makan','minum','makanan','minuman','air','api','tanah','udara','langit','matahari','bulan','bintang','hujan','angin','awan','tanah','laut','sungai','gunung','hutan','kota','desa','negara','dunia',
+  // common greetings
+  'halo','hai','selamat','apa','kabar','terima','kasih','maaf','permisi','tolong','ya','tidak','mungkin','benar','betul','sama','selamat','pagi','siang','malam','sore','datang','pergi','pulang','sampai','bertemu','jumpa','salam','sehat','sejahtera',
+  // particles & connectors
+  'sih','dong','deh','kok','kan','lah','kah','nya','pun','per','para'
+];
 function autoDetectLang(text) {
   if (/[一-鿿]/.test(text)) return 'zh-TW';
   const lower = text.toLowerCase();
   let idScore = 0, enScore = 0;
   for (const w of ID_HINTS) {
+    if (w.length < 2) continue;
     const re = new RegExp('\\b' + w + '\\b', 'gi');
     const m = lower.match(re);
-    if (m) idScore += m.length;
+    if (m) idScore += m.length * w.length; // longer words = stronger signal
   }
-  // common English function words
-  for (const w of ['the','is','are','was','were','i','you','he','she','we','they','and','or','but','please','thank','hello','hi','yes','no','can','will','would','could','should','have','has','had','do','does','did','not']) {
+  for (const w of ['the','is','are','was','were','i','you','he','she','we','they','and','or','but','please','thank','hello','hi','yes','no','can','will','would','could','should','have','has','had','do','does','did','not','what','when','where','who','why','how','this','that','these','those','because','about','from','with','into','over','under','after','before','between','through','during','until','while','than','then','also','just','only','very','really','much','many','some','any','all','most','more','less','such','same','different','other','another','first','second','last','next','new','old','good','bad','big','small','long','short','high','low','far','near','easy','hard','fast','slow','hot','cold','full','empty','right','left','up','down','here','there']) {
     const re = new RegExp('\\b' + w + '\\b', 'gi');
     const m = lower.match(re);
     if (m) enScore += m.length;

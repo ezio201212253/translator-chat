@@ -56,10 +56,15 @@
           <div class="me">我: <span id="meName">--</span></div>
         </div>
         <div class="topbar-actions">
-          <select id="displayLangLive" class="lang-pill">
+          <select id="displayLangLive" class="lang-pill" title="對方看到的語言">
             <option value="id">🇮🇩 印尼文</option>
             <option value="en">🇺🇸 英文</option>
             <option value="zh-TW">🇹🇼 中文</option>
+          </select>
+          <select id="typingLangLive" class="lang-pill" title="我打字的語言">
+            <option value="zh-TW">🖊️ 中文</option>
+            <option value="en">🖊️ 英文</option>
+            <option value="id">🖊️ 印尼文</option>
           </select>
         </div>
       </header>
@@ -67,8 +72,7 @@
       <div id="messageList" class="messages" aria-live="polite"></div>
 
       <form id="sendForm" class="composer">
-        <button type="button" id="typingLangBtn" class="lang-toggle" title="切換打字的語言">中</button>
-        <input id="messageInput" type="text" placeholder="輸入訊息…" autocomplete="off" maxlength="2000">
+        <textarea id="messageInput" placeholder="輸入訊息…" rows="1" maxlength="2000"></textarea>
         <button type="submit" class="primary send-btn" aria-label="送出">➤</button>
       </form>
       <div id="statusLine" class="status">連線中…</div>

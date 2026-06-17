@@ -43,9 +43,8 @@ function setStatus(text, cls) {
 }
 
 function setTypingLangButton() {
-  const btn = $('typingLangBtn');
-  btn.textContent = LANG_LABELS[state.typingLang].short;
-  btn.title = '目前打字的語言: ' + LANG_LABELS[state.typingLang].long + '（點擊切換）';
+  const sel = $('typingLangLive');
+  if (sel) sel.value = state.typingLang;
 }
 
 function setDisplayLangUI() {
@@ -196,6 +195,7 @@ async function sendMessage() {
   }
 
   input.value = '';
+  autoGrowTextarea(input);
   const from = state.typingLang;
   // Translate first to other langs, send all 3 versions
   let translations = { [from]: text };
@@ -213,6 +213,16 @@ async function sendMessage() {
     originalLang: from,
     translations
   }));
+}
+
+// auto-grow textarea: 1 -> up to 5 lines
+function autoGrowTextarea(el) {
+  el.style.height = 'auto';
+  const lineH = 22; // ~ font-size 16 * line-height 1.4
+  const maxH = lineH * 5 + 24;
+  const newH = Math.min(el.scrollHeight, maxH);
+  el.style.height = newH + 'px';
+  el.style.overflowY = el.scrollHeight > maxH ? 'auto' : 'hidden';
 }
 
 // --- render ---
@@ -278,24 +288,28 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     sendMessage();
   });
-  $('messageInput').addEventListener('keydown', (e) => {
+  const input = $('messageInput');
+  input.addEventListener('input', () => autoGrowTextarea(input));
+  input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
       e.preventDefault();
       sendMessage();
     }
   });
-  $('typingLangBtn').addEventListener('click', () => {
-    const order = ['zh-TW', 'en', 'id'];
-    const i = order.indexOf(state.typingLang);
-    state.typingLang = order[(i + 1) % order.length];
-    setTypingLangButton();
-  });
+  // (typing-lang toggle button removed; use topbar selector instead)
   $('displayLangLive').addEventListener('change', (e) => {
     state.displayLang = e.target.value;
     if (state.ws && state.ws.readyState === WebSocket.OPEN) {
       state.ws.send(JSON.stringify({ type: 'setLang', displayLang: state.displayLang }));
     }
     renderMessages();
+    try { localStorage.setItem('chatDisplayLang', state.displayLang); } catch (e) {}
+  });
+
+  $('typingLangLive').addEventListener('change', (e) => {
+    state.typingLang = e.target.value;
+    try { localStorage.setItem('chatTypingLang', state.typingLang); } catch (e) {}
+    $('messageInput').focus();
   });
 
   // restore name + room from localStorage (and accept ?room=XXX in URL for fixed rooms)
@@ -309,7 +323,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (savedRoom) $('roomInput').value = savedRoom;
   if (urlRoom) $('roomInput').value = urlRoom.toUpperCase();
   if (savedDisplay && ['en', 'id', 'zh-TW'].includes(savedDisplay)) $('displayLang').value = savedDisplay;
-  if (savedTyping && ['en', 'id', 'zh-TW'].includes(savedTyping)) $('typingLang').value = savedTyping;
+  if (savedTyping && ['en', 'id', 'zh-TW'].includes(savedTyping)) {
+    $('typingLang').value = savedTyping;
+    state.typingLang = savedTyping;
+  }
+  if (savedDisplay && ['en', 'id', 'zh-TW'].includes(savedDisplay)) {
+    state.displayLang = savedDisplay;
+  }
 
   // show hint if room is pre-filled
   const hintEl = $('roomHint');

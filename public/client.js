@@ -68,6 +68,14 @@ function joinRoom() {
     return;
   }
 
+  // persist for next visit
+  try {
+    localStorage.setItem('chatName', name);
+    localStorage.setItem('chatRoom', room);
+    localStorage.setItem('chatDisplayLang', displayLang);
+    localStorage.setItem('chatTypingLang', typingLang);
+  } catch (e) { /* ignore quota errors */ }
+
   state.room = room;
   state.name = name;
   state.displayLang = displayLang;
@@ -290,11 +298,35 @@ document.addEventListener('DOMContentLoaded', () => {
     renderMessages();
   });
 
-  // restore name from localStorage
-  const saved = localStorage.getItem('chatName');
-  if (saved) $('nameInput').value = saved;
+  // restore name + room from localStorage (and accept ?room=XXX in URL for fixed rooms)
+  const urlRoom = new URLSearchParams(location.search).get('room');
+  const savedName = localStorage.getItem('chatName');
+  const savedRoom = localStorage.getItem('chatRoom');
+  const savedDisplay = localStorage.getItem('chatDisplayLang');
+  const savedTyping = localStorage.getItem('chatTypingLang');
+
+  if (savedName) $('nameInput').value = savedName;
+  if (savedRoom) $('roomInput').value = savedRoom;
+  if (urlRoom) $('roomInput').value = urlRoom.toUpperCase();
+  if (savedDisplay && ['en', 'id', 'zh-TW'].includes(savedDisplay)) $('displayLang').value = savedDisplay;
+  if (savedTyping && ['en', 'id', 'zh-TW'].includes(savedTyping)) $('typingLang').value = savedTyping;
+
+  // show hint if room is pre-filled
+  const hintEl = $('roomHint');
+  if (hintEl && $('roomInput').value) {
+    hintEl.textContent = '✓ 已自動帶入上次房號';
+    hintEl.style.display = 'block';
+  }
+
+  // focus first empty field for fast entry
+  if (!$('nameInput').value) $('nameInput').focus();
+  else if (!$('roomInput').value) $('roomInput').focus();
+  else $('joinBtn').focus();
 
   $('nameInput').addEventListener('change', () => {
     localStorage.setItem('chatName', $('nameInput').value.trim());
+  });
+  $('roomInput').addEventListener('change', () => {
+    localStorage.setItem('chatRoom', $('roomInput').value.trim().toUpperCase());
   });
 });

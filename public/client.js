@@ -92,6 +92,24 @@ async function ensureAllTranslations(lang) {
   if (tasks.length) await Promise.all(tasks);
 }
 
+// --- local cache: survive reconnects + faster first paint ---
+const CACHE_PREFIX = 'chatCache:';
+const CACHE_MAX = 200;
+function cacheSave(room, messages) {
+  try {
+    const slice = messages.slice(-CACHE_MAX);
+    localStorage.setItem(CACHE_PREFIX + room, JSON.stringify(slice));
+  } catch (e) { /* quota or disabled */ }
+}
+function cacheLoad(room) {
+  try {
+    const raw = localStorage.getItem(CACHE_PREFIX + room);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch { return []; }
+}
+
 // --- join room ---
 function joinRoom() {
   const room = $('roomInput').value.trim().toUpperCase();
@@ -144,6 +162,13 @@ function connect() {
   state.ws.onopen = () => {
     state.reconnectAttempts = 0;
     setStatus('已連線', 'connected');
+    // Paint cached history immediately so the user has context
+    const cached = cacheLoad(state.room);
+    if (cached.length && state.messages.length === 0) {
+      state.messages = cached;
+      renderMessages();
+      setStatus('已連線（顯示本機快取）', 'connected');
+    }
     state.ws.send(JSON.stringify({
       type: 'join',
       room: state.room,
@@ -158,15 +183,20 @@ function connect() {
     try { msg = JSON.parse(e.data); } catch { return; }
     if (msg.type === 'history') {
       state.messages = msg.messages || [];
+      cacheSave(state.room, state.messages);
       // Fill missing translations for current display language
       await ensureAllTranslations(state.displayLang);
       renderMessages();
       scrollToBottom();
     } else if (msg.type === 'message') {
       state.messages.push(msg.message);
+      cacheSave(state.room, state.messages);
       // Lazy-fill translation if needed
       if (!msg.message.system) {
-        ensureTranslation(msg.message, state.displayLang).then(() => renderMessages());
+        ensureTranslation(msg.message, state.displayLang).then(() => {
+          cacheSave(state.room, state.messages);
+          renderMessages();
+        });
       }
       renderMessages();
       scrollToBottom();

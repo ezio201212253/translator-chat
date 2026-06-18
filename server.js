@@ -2,7 +2,7 @@
 // - Serves static UI from /public
 // - WebSocket at /ws for chat
 // - POST /api/translate proxies MyMemory (free, no key)
-// - Stores room history as JSON files under /data
+// - Storage: Upstash Redis (persistent) if env vars set, else local /data (ephemeral)
 
 const express = require('express');
 const http = require('http');
@@ -45,9 +45,46 @@ app.post('/api/translate', async (req, res) => {
 // --- health check (for Render) ---
 app.get('/healthz', (_req, res) => res.json({ ok: true, ts: Date.now() }));
 
-// --- room storage ---
+// --- storage: Upstash Redis (persistent) + local file (ephemeral fallback) ---
+const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
+const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+const USE_REDIS = !!(UPSTASH_URL && UPSTASH_TOKEN);
+
 const roomFile = (id) => path.join(DATA_DIR, `${id}.json`);
-const readRoom = (id) => {
+
+async function redisExec(...args) {
+  if (!USE_REDIS) return null;
+  try {
+    const r = await fetch(UPSTASH_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${UPSTASH_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(args),
+      signal: AbortSignal.timeout(5000)
+    });
+    if (!r.ok) {
+      console.error('upstash http', r.status, (await r.text().catch(() => '')).slice(0, 200));
+      return null;
+    }
+    const j = await r.json();
+    return j.result;
+  } catch (e) {
+    console.error('upstash err', e.message);
+    return null;
+  }
+}
+
+async function readRoom(id) {
+  if (USE_REDIS) {
+    const v = await redisExec('GET', `chat:room:${id}`);
+    if (typeof v === 'string' && v.length) {
+      try { const a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch { return []; }
+    }
+    return []; // key missing OR redis unavailable
+  }
+  // local file fallback
   try {
     const raw = fs.readFileSync(roomFile(id), 'utf8');
     const arr = JSON.parse(raw);
@@ -55,14 +92,30 @@ const readRoom = (id) => {
   } catch {
     return [];
   }
-};
-const writeRoom = (id, msgs) => {
+}
+
+async function writeRoom(id, msgs) {
+  let redisOk = false;
+  if (USE_REDIS) {
+    const r = await redisExec('SET', `chat:room:${id}`, JSON.stringify(msgs));
+    if (r === 'OK') redisOk = true;
+  }
+  // always mirror to local file as backup
   try {
     fs.writeFileSync(roomFile(id), JSON.stringify(msgs, null, 2));
-  } catch (e) {
-    console.error('writeRoom error:', e.message);
-  }
-};
+  } catch (e) { /* ignore local write errors */ }
+  return redisOk || !USE_REDIS;
+}
+
+// Debug: which storage mode are we in?
+app.get('/api/storage', (_req, res) => {
+  res.json({
+    mode: USE_REDIS ? 'redis (persistent)' : 'local (ephemeral on Render free tier)',
+    persistent: USE_REDIS,
+    hasUrl: !!UPSTASH_URL,
+    hasToken: !!UPSTASH_TOKEN
+  });
+});
 
 // --- WebSocket chat ---
 const clients = new Map(); // ws -> { room, name, displayLang, typingLang }
@@ -70,7 +123,7 @@ const clients = new Map(); // ws -> { room, name, displayLang, typingLang }
 wss.on('connection', (ws) => {
   clients.set(ws, { room: null, name: null, displayLang: 'en', typingLang: 'zh-TW' });
 
-  ws.on('message', (raw) => {
+  ws.on('message', async (raw) => {
     let msg;
     try { msg = JSON.parse(raw.toString()); } catch { return; }
     const c = clients.get(ws);
@@ -82,7 +135,7 @@ wss.on('connection', (ws) => {
       c.displayLang = ['en', 'id', 'zh-TW'].includes(msg.displayLang) ? msg.displayLang : 'en';
       c.typingLang = ['en', 'id', 'zh-TW'].includes(msg.typingLang) ? msg.typingLang : c.displayLang;
 
-      const history = readRoom(c.room);
+      const history = await readRoom(c.room);
       ws.send(JSON.stringify({ type: 'history', messages: history, you: { name: c.name, displayLang: c.displayLang } }));
       broadcast(c.room, { type: 'presence', text: `${c.name} joined`, ts: Date.now() }, ws);
     } else if (msg.type === 'send' && c.room) {
@@ -99,11 +152,11 @@ wss.on('connection', (ws) => {
         translations,
         ts: Date.now()
       };
-      const history = readRoom(c.room);
+      const history = await readRoom(c.room);
       history.push(record);
       // cap history per room at 1000
       if (history.length > 1000) history.splice(0, history.length - 1000);
-      writeRoom(c.room, history);
+      await writeRoom(c.room, history);
       broadcast(c.room, { type: 'message', message: record });
     } else if (msg.type === 'setLang' && c.room) {
       c.displayLang = ['en', 'id', 'zh-TW'].includes(msg.displayLang) ? msg.displayLang : c.displayLang;
@@ -128,4 +181,5 @@ function broadcast(room, payload, excludeWs) {
 
 server.listen(PORT, () => {
   console.log(`translator-chat listening on :${PORT}`);
+  console.log(`storage mode: ${USE_REDIS ? 'REDIS (persistent)' : 'LOCAL FILE (ephemeral on free Render!)'}`);
 });

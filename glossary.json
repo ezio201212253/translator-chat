@@ -1,0 +1,547 @@
+{
+  "_note": "zh-TW → id glossary. Pre-replaces technical terms BEFORE MyMemory, so terms like 批土 don't get mistranslated to 'kotoran' (dirt). Sections in order: workers, safety, tools, materials, trades, processes, specs, time, commands (100), then add'l 100 general + 100 materials.",
+
+  "工人與職稱": {
+    "工地主任": "kepala proyek",
+    "包商": "kontraktor",
+    "工頭": "mandor",
+    "領班": "ketua regu",
+    "監工": "pengawas",
+    "工地負責人": "penanggung jawab lapangan",
+    "師傅": "tukang senior",
+    "粗工": "buruh kasar",
+    "學徒": "magang",
+    "工人": "pekerja"
+  },
+
+  "安全與防護": {
+    "工地安全": "keselamatan kerja",
+    "安全帽": "helm pengaman",
+    "安全帶": "sabuk pengaman",
+    "安全網": "jaring pengaman",
+    "手套": "sarung tangan",
+    "口罩": "masker",
+    "護目鏡": "kacamata pelindung",
+    "禁止進入": "dilarang masuk",
+    "危險": "berbahaya",
+    "急救": "pertolongan pertama"
+  },
+
+  "工具": {
+    "鐵鎚": "palu",
+    "扳手": "kunci pas",
+    "螺絲起子": "obeng",
+    "電鑽": "bor listrik",
+    "電鋸": "gergaji listrik",
+    "鋸子": "gergaji",
+    "捲尺": "meteran",
+    "水平尺": "waterpass",
+    "墨斗": "benang penanda",
+    "推車": "gerobak dorong"
+  },
+
+  "材料": {
+    "水泥": "semen",
+    "砂": "pasir",
+    "石頭": "batu",
+    "混凝土": "beton",
+    "紅磚": "batu bata merah",
+    "鋼筋": "besi beton",
+    "木材": "kayu",
+    "鐵件": "besi",
+    "鋁料": "aluminium",
+    "PVC管": "pipa PVC",
+    "防水層": "lapisan kedap air",
+    "油漆": "cat",
+    "磁磚": "keramik",
+    "模板": "bekisting",
+    "鷹架": "perancah"
+  },
+
+  "工種": {
+    "泥作": "tukang batu",
+    "鐵工": "tukang besi",
+    "木工": "tukang kayu",
+    "水電": "tukang ledeng",
+    "油漆工": "tukang cat",
+    "磁磚工": "tukang keramik",
+    "防水工": "tukang waterproofing",
+    "鋁窗工": "tukang aluminium",
+    "模板工": "tukang bekisting",
+    "鋼筋工": "tukang besi beton"
+  },
+
+  "工序與動作": {
+    "灌漿": "pengecoran",
+    "綁鋼筋": "mengikat besi beton",
+    "釘模板": "memaku bekisting",
+    "粉刷": "memplester",
+    "批土": "dempul",
+    "放樣": "penandaan",
+    "找平": "meratakan",
+    "對齊": "menyelaraskan",
+    "切割": "memotong",
+    "焊接": "mengelas",
+    "鑽孔": "mengebor",
+    "鎖螺絲": "mengencangkan sekrup",
+    "測量": "mengukur",
+    "檢查": "memeriksa",
+    "清理": "membersihkan",
+    "拆除": "membongkar",
+    "搬運": "memindahkan",
+    "養護": "perawatan",
+    "試水": "uji kebocoran",
+    "止水墩": "tanggul air kecil",
+    "收尾": "finishing",
+    "進場": "masuk lokasi",
+    "退場": "keluar lokasi",
+    "垂直": "tegak lurus",
+    "水平": "rata"
+  },
+
+  "規格與尺寸": {
+    "厚度": "ketebalan",
+    "深度": "kedalaman",
+    "高度": "ketinggian",
+    "寬度": "lebar",
+    "長度": "panjang",
+    "一公分": "satu sentimeter",
+    "一公尺": "satu meter",
+    "一樓": "lantai satu",
+    "二樓": "lantai dua",
+    "三樓": "lantai tiga"
+  },
+
+  "時間與排程": {
+    "今天": "hari ini",
+    "明天": "besok",
+    "後天": "lusa",
+    "昨天": "kemarin",
+    "早上": "pagi",
+    "下午": "siang",
+    "晚上": "malam",
+    "加班": "lembur",
+    "早班": "shift pagi",
+    "收工": "selesai kerja"
+  },
+
+  "指令用語": {
+    "開始工作": "mulai kerja",
+    "停工": "berhenti kerja",
+    "趕工": "percepat kerja",
+    "休息": "istirahat",
+    "拍照": "ambil foto",
+    "再來一次": "ulangi lagi",
+    "等一下": "tunggu sebentar",
+    "跟我來": "ikut saya",
+    "幫忙": "tolong bantu",
+    "沒問題": "tidak masalah"
+  },
+
+  "進階人事薪資": {
+    "正班": "regu tetap",
+    "副班": "regu cadangan",
+    "全職": "penuh waktu",
+    "兼職": "paruh waktu",
+    "臨時工": "pekerja harian",
+    "點工": "borongan harian",
+    "包工": "borongan",
+    "論件計酬": "borongan per unit",
+    "月薪": "gaji bulanan",
+    "日薪": "gaji harian",
+    "時薪": "gaji per jam",
+    "加班費": "uang lembur",
+    "預支": "uang muka",
+    "尾款": "pelunasan",
+    "伙食費": "uang makan",
+    "交通費": "uang transport",
+    "住宿": "mess pekerja",
+    "制服": "seragam kerja",
+    "識別證": "kartu identitas kerja",
+    "打卡": "absen",
+    "請假": "izin",
+    "曠職": "mangkir",
+    "遲到": "terlambat",
+    "早退": "pulang awal",
+    "離職": "berhenti kerja",
+    "資遣": "PHK",
+    "保險": "asuransi",
+    "勞保": "BPJS Ketenagakerjaan",
+    "健保": "BPJS Kesehatan"
+  },
+
+  "工地場所": {
+    "工地": "lokasi proyek",
+    "營區": "barak pekerja",
+    "辦公室": "kantor lapangan",
+    "倉庫": "gudang material",
+    "宿舍": "mess",
+    "休息區": "area istirahat",
+    "餐廳": "kantin",
+    "警衛室": "pos keamanan",
+    "圍籬": "pagar proyek",
+    "大門": "gerbang proyek",
+    "車道": "jalur kendaraan",
+    "卸貨區": "area bongkar muat",
+    "樣品屋": "rumah contoh",
+    "接待中心": "pemasaran rumah",
+    "屋主": "pemilik rumah",
+    "設計師": "arsitek / desainer",
+    "技師": "teknisi",
+    "工務所": "konsultan pengawas",
+    "鄰居": "tetangga",
+    "里長": "kepala RT"
+  },
+
+  "房屋結構": {
+    "地基": "fondasi",
+    "樑": "balok",
+    "柱": "kolom",
+    "樓板": "plat lantai",
+    "屋頂": "atap",
+    "牆": "dinding",
+    "牆壁": "dinding tembok",
+    "樓梯": "tangga",
+    "隔間": "partisi",
+    "天花板": "langit-langit",
+    "地板": "lantai",
+    "玄關": "foyer",
+    "客廳": "ruang tamu",
+    "廚房": "dapur",
+    "臥室": "kamar tidur",
+    "浴室": "kamar mandi",
+    "陽台": "balkon",
+    "走廊": "koridor",
+    "車庫": "garasi",
+    "屋突": "dak atap"
+  },
+
+  "機電與設備": {
+    "電梯": "lift",
+    "發電機": "generator",
+    "抽水機": "pompa air",
+    "壓縮機": "kompresor",
+    "空調": "AC",
+    "配電箱": "panel listrik",
+    "斷路器": "MCB",
+    "接地": "arde",
+    "變壓器": "trafo",
+    "電錶": "meteran listrik",
+    "水錶": "meteran air",
+    "消防": "pemadam kebakaran",
+    "灑水頭": "sprinkler",
+    "監視器": "CCTV",
+    "對講機": "interkom"
+  },
+
+  "問題與排程": {
+    "漏水": "bocor",
+    "龜裂": "retak",
+    "剝落": "mengelupas",
+    "變形": "melengkung",
+    "生鏽": "berkarat",
+    "阻塞": "tersumbat",
+    "漏電": "kebocoran listrik",
+    "跳電": "listrik mati mendadak",
+    "工期": "jadwal kerja",
+    "進度": "progres",
+    "延誤": "keterlambatan",
+    "提前": "lebih awal",
+    "雨天": "hujan",
+    "颱風": "topan",
+    "高溫": "suhu tinggi"
+  },
+
+  "材料_水泥混凝土": {
+    "卜特蘭水泥": "semen Portland",
+    "高爐水泥": "semen tanur tinggi",
+    "白水泥": "semen putih",
+    "水泥粉": "tepung semen",
+    "快乾水泥": "semen cepat kering",
+    "卵石": "kerikil",
+    "碎石": "batu pecah",
+    "級配": "gradasi agregat",
+    "細砂": "pasir halus",
+    "粗砂": "pasir kasar",
+    "水泥砂漿": "mortar",
+    "混凝土": "beton cor",
+    "預拌混凝土": "beton siap pakai",
+    "輕質混凝土": "beton ringan",
+    "清水混凝土": "beton ekspos"
+  },
+
+  "材料_鋼鐵金屬": {
+    "H型鋼": "baja profil H",
+    "I型鋼": "baja profil I",
+    "槽鋼": "baja kanal C",
+    "角鋼": "baja siku",
+    "扁鐵": "besi plat pipih",
+    "方管": "pipa kotak",
+    "圓管": "pipa bulat",
+    "鍍鋅鐵": "besi galvanis",
+    "黑鐵": "besi hitam",
+    "不鏽鋼": "stainless steel",
+    "銅": "tembaga",
+    "鋁": "aluminium",
+    "鋼板": "plat baja",
+    "鋼絲": "kawat baja",
+    "鋼網": "wiremesh"
+  },
+
+  "材料_木材": {
+    "柳安木": "kayu meranti",
+    "杉木": "kayu cemara",
+    "松木": "kayu pinus",
+    "檜木": "kayu hinoki",
+    "合板": "multipleks",
+    "角材": "kaso",
+    "夾板": "tripleks",
+    "塑合板": "particle board",
+    "密集板": "MDF",
+    "木芯板": "blockboard"
+  },
+
+  "材料_塑膠管材": {
+    "PE管": "pipa PE",
+    "PPR管": "pipa PPR",
+    "PB管": "pipa PB",
+    "HDPE管": "pipa HDPE",
+    "塑膠布": "terpal",
+    "塑膠膜": "plastik film",
+    "PVC管": "pipa PVC",
+    "PVC線槽": "saluran kabel PVC"
+  },
+
+  "材料_防水": {
+    "防水毯": "geomembran",
+    "防水膜": "membran kedap air",
+    "PU防水": "waterproofing PU",
+    "瀝青": "aspal",
+    "油毛氈": "felt aspal",
+    "防水漆": "cat kedap air",
+    "彈性水泥": "semen elastis",
+    "防水添加劑": "zat aditif kedap air"
+  },
+
+  "材料_油漆塗料": {
+    "底漆": "cat dasar",
+    "面漆": "cat akhir",
+    "水泥漆": "cat tembok",
+    "乳膠漆": "cat lateks",
+    "油性漆": "cat minyak",
+    "噴漆": "cat semprot",
+    "木器漆": "cat kayu",
+    "防鏽漆": "cat antikarat",
+    "透明漆": "vernis",
+    "隔熱漆": "cat insulasi panas"
+  },
+
+  "材料_填縫黏著": {
+    "矽利康": "silicone",
+    "AB膠": "lem epoxy",
+    "環氧樹脂": "resin epoksi",
+    "PU填縫劑": "sealant PU",
+    "塑鋼土": "dempul plastik",
+    "白膠": "lem putih",
+    "強力膠": "lem kontak",
+    "瞬間膠": "lem instan"
+  },
+
+  "材料_磁磚石材": {
+    "拋光磚": "ubin poles",
+    "石英磚": "ubin kuarsa",
+    "木紋磚": "ubin motif kayu",
+    "馬賽克": "mosaik",
+    "復古磚": "ubin vintage",
+    "霧面磚": "ubin matte",
+    "亮面磚": "ubin glossy",
+    "文化石": "batu kultur"
+  },
+
+  "材料_玻璃": {
+    "強化玻璃": "kaca tempered",
+    "膠合玻璃": "kaca laminasi",
+    "隔音玻璃": "kaca peredam suara",
+    "Low-E玻璃": "kaca Low-E",
+    "壓花玻璃": "kaca bermotif"
+  },
+
+  "材料_屋頂": {
+    "浪板": "spandek",
+    "彩色鋼板": "spandek warna",
+    "石綿瓦": "genting asbes",
+    "樹脂瓦": "genting resin",
+    "琉璃瓦": "genting keramik"
+  },
+
+  "材料_五金": {
+    "螺絲": "sekrup",
+    "釘子": "paku",
+    "膨脹螺絲": "baut ekspansi",
+    "華司": "ring",
+    "墊片": "gasket",
+    "鉸鏈": "engsel",
+    "門鎖": "kunci pintu",
+    "把手": "gagang pintu"
+  },
+
+  "材料_電料": {
+    "2.0電線": "kabel 2.0mm",
+    "3.5電線": "kabel 3.5mm",
+    "5.5電線": "kabel 5.5mm",
+    "8.0電線": "kabel 8.0mm",
+    "接地線": "kabel arde"
+  },
+
+  "材料_給排水": {
+    "馬桶": "kloset",
+    "臉盆": "wastafel",
+    "蓮蓬頭": "shower",
+    "水龍頭": "keran air",
+    "存水彎": "floor trap"
+  },
+
+  "材料_油漆工具": {
+    "滾筒刷": "roller cat",
+    "刷子": "kuas",
+    "噴槍": "spray gun",
+    "砂紙": "amplas",
+    "刮刀": "scraper"
+  },
+
+  "工具_手工具": {
+    "鐵夾": "klem C",
+    "老虎鉗": "tang buaya",
+    "尖嘴鉗": "tang lancip",
+    "斜口鉗": "tang diagonal",
+    "鋼絲鉗": "tang kombinasi",
+    "活動扳手": "kunci inggris",
+    "套筒扳手": "kunci sok",
+    "內六角扳手": "kunci L",
+    "十字起子": "obeng plus",
+    "一字起子": "obeng minus",
+    "鑿子": "pahat",
+    "榔頭": "palu godam",
+    "鐵剪": "gunting seng",
+    "鋼鋸": "gergaji besi",
+    "鐵鎚": "palu",
+    "板手": "kunci pas",
+    "鉗子": "tang",
+    "鋼絲剪": "gunting kawat",
+    "美工刀": "cutter",
+    "鐵撬": "linggis"
+  },
+
+  "工具_測量": {
+    "雷射水平儀": "waterpass laser",
+    "雷射測距儀": "meteran laser",
+    "雷射墨線儀": "alat garis laser",
+    "直角尺": "penggaris siku",
+    "三角板": "penggaris segitiga",
+    "游標卡尺": "jangka sorong",
+    "皮尺": "meteran pita",
+    "角度尺": "busur derajat",
+    "水準儀": "theodolit",
+    "比例尺": "penggaris skala"
+  },
+
+  "工具_水電": {
+    "切管器": "pemotong pipa",
+    "套筒": "sok",
+    "壓接鉗": "tang crimping",
+    "彎管器": "alat bending pipa",
+    "通管條": "kabel pembersih pipa",
+    "水管鉗": "tang pipa",
+    "瓦斯噴燈": "obor gas",
+    "驗電筆": "tespen",
+    "電工鉗": "tang listrik",
+    "壓接端子": "konektor crimp",
+    "電工膠帶": "isolasi listrik",
+    "三用電錶": "multimeter",
+    "剝線鉗": "tang pengupas kabel",
+    "電纜剪": "pemotong kabel",
+    "通電測試": "uji kontinuitas"
+  },
+
+  "工具_木工": {
+    "刨刀": "ketam",
+    "木工角尺": "siku tukang kayu",
+    "桌鋸": "gergaji meja",
+    "帶鋸": "gergaji pita",
+    "倒角機": "mesin chamfer",
+    "木工夾": "klem kayu",
+    "G字夾": "klem C besar",
+    "砂磨機": "mesin amplas",
+    "雕刻機": "router kayu",
+    "修邊機": "router trim",
+    "修邊刀": "mata router trim",
+    "木工膠": "lem kayu"
+  },
+
+  "工具_油漆": {
+    "油漆盤": "baki cat",
+    "油漆刷": "kuas cat",
+    "噴漆機": "mesin semprot cat",
+    "紙膠帶": "selotip kertas",
+    "養生膠帶": "selotip pelindung",
+    "油漆刮刀": "scraper cat",
+    "鏟刀": "pisau dempul",
+    "細砂紙": "amplas halus",
+    "粗砂紙": "amplas kasar",
+    "油漆攪拌棒": "pengaduk cat"
+  },
+
+  "工具_電動": {
+    "震動電鑽": "bor beton",
+    "衝擊板手": "impact wrench",
+    "充電起子": "obeng listrik",
+    "切割機": "mesin potong",
+    "砂輪機": "gerinda",
+    "電釘槍": "paku tembak listrik",
+    "氣動釘槍": "paku tembak pneumatic",
+    "熱風槍": "heat gun",
+    "電烙鐵": "solder",
+    "攪拌機": "mesin pengaduk",
+    "吹風機": "blower",
+    "抽水機": "pompa air"
+  },
+
+  "工具_搬運升降": {
+    "千斤頂": "dongkrak",
+    "油壓千斤頂": "dongkrak hidrolik",
+    "堆高機": "forklift",
+    "吊車": "crane",
+    "貨車": "truk",
+    "手推車": "gerobak dorong",
+    "拖板車": "dolly",
+    "鋁梯": "tangga aluminium"
+  },
+
+  "工具_拆除": {
+    "大鐵鎚": "palu besar",
+    "破碎機": "pemecah beton",
+    "風炮": "bor angin",
+    "電鑽破碎機": "bor pemecah",
+    "風鎚": "bor bobok",
+    "破碎槍": "jack hammer"
+  },
+
+  "工具_防護": {
+    "防塵口罩": "masker debu",
+    "耳塞": "sumbat telinga",
+    "耳罩": "pelindung telinga",
+    "安全鞋": "sepatu safety",
+    "工地鞋": "sepatu bot kerja",
+    "雨衣": "jas hujan",
+    "反光背心": "rompi reflektor",
+    "工作手套": "sarung tangan kerja"
+  },
+
+  "_counts": {
+    "original_100": 9,
+    "extra_general_100": "5 categories x 20-30 terms each = 100",
+    "extra_materials_100": "12 categories x 5-15 terms each = 100",
+    "extra_tools_100": "9 categories x 6-20 terms each = 100",
+    "grand_total": "324+"
+  }
+}

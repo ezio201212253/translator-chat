@@ -162,10 +162,10 @@ app.post('/api/translate', async (req, res) => {
 
     const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${encodeURIComponent(from)}|${encodeURIComponent(to)}&de=translator-chat@ezio.tw`;
     const r = await fetch(url, { headers: { 'User-Agent': 'translator-chat/1.0' } });
+    const rawText = await r.text();
+    console.log('[translate]', JSON.stringify({ input: text, url, status: r.status, rawText: rawText.slice(0, 500), rawLen: rawText.length }));
     if (!r.ok) throw new Error('upstream ' + r.status);
-    const j = await r.json();
-    // DEBUG: log raw response for diagnosis
-    console.log('[translate]', JSON.stringify({ input: text, rawTranslated: j && j.responseData && j.responseData.translatedText, rawLen: j && j.responseData && j.responseData.translatedText && j.responseData.translatedText.length, status: j && j.responseStatus }));
+    const j = JSON.parse(rawText);
     let translated = (j && j.responseData && j.responseData.translatedText) || text;
     translated = postFix(translated, from, to, text);
     res.json({

@@ -51,6 +51,64 @@ function loadGlossary() {
       { when: 'id', inputHas: '水電', bad: ['pembangkit listrik tenaga air', 'listrik dan air'], good: 'utilitas' },
       // 樓梯踏步 = stair tread (anak tangga), NOT "Treadmill" (exercise machine)
       { when: 'id', inputHas: '樓梯踏步', bad: ['Treadmill', 'treadmill'], good: 'anak tangga' },
+      // 積水 must not become "Sekisui" (random transliteration gibberish)
+      { when: 'id', inputHas: '積水', bad: ['Sekisui', 'sekisui'], good: 'genangan air' },
+      // 茶水間 = pantry / ruang istirahat, NOT "dapur" (kitchen)
+      { when: 'id', inputHas: '茶水間', bad: ['dapur'], good: 'ruang istirahat' },
+      // 貨梯 = lift barang (freight elevator), NOT "tangga" (stairs)
+      { when: 'id', inputHas: '貨梯', bad: ['tangga pengantaran', 'tangga'], good: 'lift barang' },
+      // 磁磚 = ubin (floor tile), NOT "genteng" (roof tile)
+      { when: 'id', inputHas: '磁磚', bad: ['Genteng', 'genteng'], good: 'ubin' },
+      // 拆箱 = buka kotak (unbox), NOT "unboxing" (English)
+      { when: 'id', inputHas: '拆箱', bad: ['Unboxing', 'unboxing'], good: 'buka kotak' },
+      // 抽水 = pompa, NOT English "Pump"
+      { when: 'id', inputHas: '抽水', bad: [' Pump', 'Pump '], good: 'pompa' },
+      // 砂 = pasir, NOT English "sand"
+      { when: 'id', inputHas: '砂', bad: [' sand', 'sand '], good: 'pasir' },
+      // 掃 = sapu, NOT English "Sweep"
+      { when: 'id', inputHas: '掃', bad: [' Sweep', 'Sweep '], good: 'sapu' },
+      // 15樓 = lantai 15, NOT English "15F"
+      { when: 'id', inputHas: '15樓', bad: ['15F', '15F'], good: 'lantai 15' },
+      // 11樓 / 12樓 → same problem as 15F (English abbreviation in MyMemory output)
+      { when: 'id', inputHas: '11樓', bad: ['11F', '11/F'], good: 'lantai 11' },
+      { when: 'id', inputHas: '12樓', bad: ['12F', '12/F'], good: 'lantai 12' },
+      // 1-10樓 + 13-14樓 — MyMemory converts these to "X/F" or "XF" systematically
+      { when: 'id', inputHas: '1樓', bad: ['1F', '1/F'], good: 'lantai 1' },
+      { when: 'id', inputHas: '2樓', bad: ['2F', '2/F'], good: 'lantai 2' },
+      { when: 'id', inputHas: '3樓', bad: ['3F', '3/F'], good: 'lantai 3' },
+      { when: 'id', inputHas: '4樓', bad: ['4F', '4/F'], good: 'lantai 4' },
+      { when: 'id', inputHas: '5樓', bad: ['5F', '5/F'], good: 'lantai 5' },
+      { when: 'id', inputHas: '6樓', bad: ['6F', '6/F'], good: 'lantai 6' },
+      { when: 'id', inputHas: '7樓', bad: ['7F', '7/F'], good: 'lantai 7' },
+      { when: 'id', inputHas: '8樓', bad: ['8F', '8/F'], good: 'lantai 8' },
+      { when: 'id', inputHas: '9樓', bad: ['9F', '9/F'], good: 'lantai 9' },
+      { when: 'id', inputHas: '10樓', bad: ['10F', '10/F'], good: 'lantai 10' },
+      { when: 'id', inputHas: '13樓', bad: ['13F', '13/F'], good: 'lantai 13' },
+      { when: 'id', inputHas: '14樓', bad: ['14F', '14/F'], good: 'lantai 14' },
+      // 監工 = mandor (site foreman), NOT English "supervisor"
+      { when: 'id', inputHas: '監工', bad: ['Supervisor', 'supervisor'], good: 'mandor' },
+      // 鐵屑 = serbuk (metal filings), NOT English "scrap"
+      { when: 'id', inputHas: '鐵屑', bad: ['Scrap', 'scrap'], good: 'serbuk' },
+      // 走道 = koridor (corridor), NOT English "walkway"
+      { when: 'id', inputHas: '走道', bad: ['Walkway', 'walkway'], good: 'koridor' },
+      // 水泥 = semen (cement), NOT "beton" (concrete — different material)
+      { when: 'id', inputHas: '水泥', bad: ['beton', 'Beton'], good: 'semen' },
+      // 防水劑 = agen tahan air (waterproof agent). "penolak air" (water repellent) is wrong — repellent ≠ waterproof
+      { when: 'id', inputHas: '防水劑', bad: ['penolak air'], good: 'agen tahan air' },
+      // 滿載 = muatan penuh, NOT English "full"
+      { when: 'id', inputHas: '滿載', bad: ['full stop', 'full'], good: 'muatan penuh' },
+      // 油料桶 = ember (bucket), NOT English "bucket"
+      { when: 'id', inputHas: '油料', bad: [' Bucket', 'bucket ', 'Bucket Oli'], good: ' ember' },
+      // 粗工 = pekerja kasar (rough/unskilled worker), NOT standalone "kasar" (rough-adjective)
+      // MyMemory turns 粗工 into "secara kasar" / "Penanganan Kasar" — adjectives only.
+      // Force-insert "pekerja kasar" parenthetical so worker understands they're being addressed.
+      { when: 'id', inputHas: '粗工', bad: ['secara kasar', 'secara Kasar'], good: 'pekerja kasar' },
+      // 工班 = regu (work team/shift). MyMemory uses English "shift" — replace.
+      { when: 'id', inputHas: '工班', bad: ['shift', 'Shift'], good: 'regu' },
+      // 泥作師傅 = tukang batu (mason). MyMemory translates as "pembuat tanah liat" (clay maker).
+      { when: 'id', inputHas: '泥作', bad: ['pembuat tanah liat', 'tanah liat'], good: 'tukang batu' },
+      // 貼磁磚師傅 = tukang pasang ubin (tile layer). MyMemory: "pembuat ubin" or "master penempelan".
+      { when: 'id', inputHas: '貼磁磚', bad: ['pembuat ubin'], good: 'tukang pasang ubin' },
       // 鷹架 keep (perancah is right)
       // 模板 keep (bekisting is right)
     ];

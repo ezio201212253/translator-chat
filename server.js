@@ -164,6 +164,8 @@ app.post('/api/translate', async (req, res) => {
     const r = await fetch(url, { headers: { 'User-Agent': 'translator-chat/1.0' } });
     if (!r.ok) throw new Error('upstream ' + r.status);
     const j = await r.json();
+    // DEBUG: log raw response for diagnosis
+    console.log('[translate]', JSON.stringify({ input: text, rawTranslated: j && j.responseData && j.responseData.translatedText, rawLen: j && j.responseData && j.responseData.translatedText && j.responseData.translatedText.length, status: j && j.responseStatus }));
     let translated = (j && j.responseData && j.responseData.translatedText) || text;
     translated = postFix(translated, from, to, text);
     res.json({

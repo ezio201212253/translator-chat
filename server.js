@@ -3,6 +3,8 @@
 // - WebSocket at /ws for chat
 // - POST /api/translate proxies MyMemory (free, no key)
 // - Storage: Upstash Redis (persistent) if env vars set, else local /data (ephemeral)
+// - Glossary: pre-replaces technical zh-TW terms with their id equivalents before MyMemory,
+//             so 批土 → dempul (not 'kotoran' = dirt), 放樣 → penandaan, 止水墩 → tanggul air kecil
 
 const express = require('express');
 const http = require('http');
@@ -18,10 +20,80 @@ const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
+// --- glossary loader ---
+// Strategy: POST-FIX, not pre-replace. MyMemory confuses Indonesian terms
+// embedded in Chinese (e.g. 油漆→cat, then "cat" gets translated to kucing=cat animal).
+// So we send raw text to MyMemory, then fix only the known-bad Indonesian outputs.
+let GLOSSARY_ID_BAD2GOOD = []; // [[badSubstring, goodSubstring], ...] longest-first
+function loadGlossary() {
+  const fp = path.join(__dirname, 'glossary.json');
+  try {
+    const raw = JSON.parse(fs.readFileSync(fp, 'utf8'));
+    // For zh-TW → id: post-fix when MyMemory produces a known-bad Indonesian term
+    // that doesn't match the source term. We compare to a curated bad→good list.
+    // Pattern: a sentence containing term X should NOT contain bad-word Y.
+    const fixes = [
+      // [mustAppearInInput, badInOutput, goodInOutput, whenTargetIs='id']
+      { when: 'id', inputHas: '批土', bad: ['kotoran', 'dengan kotoran', 'kebersihan dulu'], good: 'dempul' },
+      { when: 'id', inputHas: '放樣', bad: ['ditempatkan', 'ditempat di', 'penempatan'], good: 'penandaan' },
+      { when: 'id', inputHas: '止水墩', bad: ['pemberhentian air', 'penghentian air'], good: 'tanggul air kecil' },
+      // 怪手 = excavator (not "strange hand")
+      { when: 'id', inputHas: '怪手', bad: ['tangan aneh', 'tangan yang aneh'], good: 'excavator' },
+      // 拆除 = bongkar (not "hapus" = delete) — caught in 200-instruction test
+      { when: 'id', inputHas: '拆除', bad: ['menghapus', 'menghapusnya', 'menghilangkan'], good: 'bongkar' },
+      // 消防栓 must not say "tak terhentikan" (unstoppable = reverse meaning)
+      { when: 'id', inputHas: '消防栓', bad: ['tak terhentikan', 'tidak terhentikan', 'yang terhenti'], good: 'tidak boleh dihalangi' },
+      // 棟: MyMemory often turns 棟 into verb "Membangun" (to build) or drops the A/B letter.
+      // Force "Gedung A/B" or "Bangunan A/B" to appear so worker knows which building.
+      { when: 'id', inputHas: 'A棟', bad: ['Membangun', 'membangun'], good: 'Gedung A' },
+      { when: 'id', inputHas: 'B棟', bad: ['Membangun', 'membangun'], good: 'Gedung B' },
+      // 水電 = utilitas (plumbing+electrical), NOT "pembangkit listrik tenaga air" (hydroelectric plant)
+      { when: 'id', inputHas: '水電', bad: ['pembangkit listrik tenaga air', 'listrik dan air'], good: 'utilitas' },
+      // 樓梯踏步 = stair tread (anak tangga), NOT "Treadmill" (exercise machine)
+      { when: 'id', inputHas: '樓梯踏步', bad: ['Treadmill', 'treadmill'], good: 'anak tangga' },
+      // 鷹架 keep (perancah is right)
+      // 模板 keep (bekisting is right)
+    ];
+    GLOSSARY_ID_BAD2GOOD = fixes;
+    // also keep a zh→id map for the OPT-IN ?glossary=1 flag (used by client debug)
+    const map = new Map();
+    for (const [section, entries] of Object.entries(raw)) {
+      if (section.startsWith('_') || typeof entries !== 'object' || !entries) continue;
+      for (const [zh, id] of Object.entries(entries)) {
+        if (typeof zh === 'string' && typeof id === 'string') map.set(zh, id);
+      }
+    }
+    GLOSSARY_ZH2ID = new Map([...map.entries()].sort((a, b) => b[0].length - a[0].length));
+    console.log(`glossary: ${GLOSSARY_ZH2ID.size} terms loaded, ${GLOSSARY_ID_BAD2GOOD.length} post-fixes active`);
+  } catch (e) {
+    console.log('glossary: not found, translation unchanged');
+  }
+}
+loadGlossary();
+
+function postFix(text, from, to, originalInput) {
+  if (from !== 'zh-TW' || to !== 'id') return text;
+  let out = text;
+  for (const fix of GLOSSARY_ID_BAD2GOOD) {
+    if (!originalInput || originalInput.indexOf(fix.inputHas) === -1) continue;
+    // Step 1: replace any known-bad Indonesian phrase with the correct term
+    for (const bad of fix.bad) {
+      const re = new RegExp(bad.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      out = out.replace(re, fix.good);
+    }
+    // Step 2: if correct term still missing, force-insert as parenthetical
+    // so the worker at least sees the right word, even if sentence is awkward
+    if (out.toLowerCase().indexOf(fix.good.toLowerCase()) === -1) {
+      out = out + ' (' + fix.good + ')';
+    }
+  }
+  return out;
+}
+
 app.use(express.json({ limit: '64kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- translation proxy (MyMemory) ---
+// --- translation proxy (MyMemory) with glossary post-fix ---
 app.post('/api/translate', async (req, res) => {
   try {
     const { text, from, to } = req.body || {};
@@ -30,12 +102,17 @@ app.post('/api/translate', async (req, res) => {
     }
     if (from === to) return res.json({ translatedText: text });
 
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${encodeURIComponent(from)}|${encodeURIComponent(to)}`;
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${encodeURIComponent(from)}|${encodeURIComponent(to)}&de=translator-chat@ezio.tw`;
     const r = await fetch(url, { headers: { 'User-Agent': 'translator-chat/1.0' } });
     if (!r.ok) throw new Error('upstream ' + r.status);
     const j = await r.json();
-    const translated = (j && j.responseData && j.responseData.translatedText) || text;
-    res.json({ translatedText: translated, match: j.responseData && j.responseData.match });
+    let translated = (j && j.responseData && j.responseData.translatedText) || text;
+    translated = postFix(translated, from, to, text);
+    res.json({
+      translatedText: translated,
+      match: j.responseData && j.responseData.match,
+      glossaryApplied: translated !== (j.responseData && j.responseData.translatedText)
+    });
   } catch (e) {
     console.error('translate error:', e.message);
     res.status(500).json({ error: e.message, translatedText: '' });

@@ -151,6 +151,41 @@ function postFix(text, from, to, originalInput) {
 app.use(express.json({ limit: '64kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// --- image upload proxy (litterbox.catbox.moe, 24h auto-expire) ---
+const LITTERBOX_URL = 'https://litterbox.catbox.moe/resources/internals/api.php';
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5 MB after client-side resize
+
+app.post('/api/upload', async (req, res) => {
+  try {
+    const { data, mime, name } = req.body || {};
+    if (typeof data !== 'string' || !mime) {
+      return res.status(400).json({ error: 'missing data/mime' });
+    }
+    const buffer = Buffer.from(data, 'base64');
+    if (buffer.length > MAX_UPLOAD_BYTES) {
+      return res.status(400).json({ error: 'too large', size: buffer.length });
+    }
+    if (!/^image\/(jpeg|png|webp|gif)$/.test(mime)) {
+      return res.status(400).json({ error: 'unsupported mime: ' + mime });
+    }
+    const filename = (name && /^[\w.\-]{1,64}$/.test(name)) ? name : 'image.jpg';
+    const form = new FormData();
+    form.append('reqtype', 'fileupload');
+    form.append('time', '24h');
+    form.append('fileToUpload', new Blob([buffer], { type: mime }), filename);
+    const r = await fetch(LITTERBOX_URL, { method: 'POST', body: form });
+    if (!r.ok) throw new Error('upstream ' + r.status);
+    const url = (await r.text()).trim();
+    if (!/^https:\/\/litter\.catbox\.moe\//.test(url)) {
+      throw new Error('unexpected upstream response: ' + url.slice(0, 120));
+    }
+    res.json({ url, expiresIn: '24h' });
+  } catch (e) {
+    console.error('upload error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // --- translation proxy (MyMemory) with glossary post-fix ---
 app.post('/api/translate', async (req, res) => {
   try {

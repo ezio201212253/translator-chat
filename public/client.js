@@ -16,6 +16,7 @@ const state = {
   messages: [],
   showOriginal: new Set(), // message ids currently showing original
   pendingTranslations: new Set(), // "msgId|lang" keys
+  pendingImage: null, // { url, mime } when user picked image but not sent yet
   reconnectAttempts: 0
 };
 
@@ -320,7 +321,8 @@ function autoDetectLang(text) {
 async function sendMessage() {
   const input = $('messageInput');
   const text = input.value.trim();
-  if (!text) return;
+  const pendingImage = state.pendingImage; // { url, mime } or null
+  if (!text && !pendingImage) return;
   if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
     setStatus('尚未連線，無法送出', 'error');
     return;
@@ -328,23 +330,103 @@ async function sendMessage() {
 
   input.value = '';
   autoGrowTextarea(input);
-  const from = autoDetectLang(text);
-  // Translate first to other langs, send all 3 versions
-  let translations = { [from]: text };
-  if (text.length <= 1500) {
-    try {
-      translations = await translateToAll(text, from);
-    } catch (e) {
-      console.error('pre-translate fail', e);
+  let translations = {};
+  if (text) {
+    const from = autoDetectLang(text);
+    translations = { [from]: text };
+    if (text.length <= 1500) {
+      try {
+        translations = await translateToAll(text, from);
+      } catch (e) {
+        console.error('pre-translate fail', e);
+      }
     }
   }
 
   state.ws.send(JSON.stringify({
     type: 'send',
-    original: text,
-    originalLang: from,
-    translations
+    original: text || '',
+    originalLang: text ? autoDetectLang(text) : 'zh-TW',
+    translations,
+    image: pendingImage ? pendingImage.url : undefined
   }));
+
+  // clear preview
+  state.pendingImage = null;
+  const pv = $('imagePreview');
+  if (pv) pv.classList.add('hidden');
+}
+
+// --- image upload: pick → canvas resize (max 1280px, JPEG 0.75) → POST /api/upload ---
+const MAX_IMG_DIM = 1280;
+async function handleImagePick(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  if (file.size > 20 * 1024 * 1024) {
+    alert('圖片太大（>20MB），請先壓縮');
+    return;
+  }
+  const status = $('imagePreviewStatus');
+  const preview = $('imagePreview');
+  const img = $('imagePreviewImg');
+  const label = document.querySelector('.img-btn');
+  label.classList.add('uploading');
+  status.textContent = '壓縮中…';
+  preview.classList.remove('hidden');
+
+  try {
+    // 1) decode
+    const bitmap = await createImageBitmap(file);
+    // 2) resize to max 1280px
+    let { width, height } = bitmap;
+    const scale = Math.min(1, MAX_IMG_DIM / Math.max(width, height));
+    const w = Math.round(width * scale);
+    const h = Math.round(height * scale);
+    // 3) draw to canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close && bitmap.close();
+    // 4) export as JPEG blob (0.75 quality)
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob fail')), 'image/jpeg', 0.75);
+    });
+    // 5) show preview
+    const previewUrl = URL.createObjectURL(blob);
+    img.src = previewUrl;
+    img.onload = () => URL.revokeObjectURL(previewUrl);
+    status.textContent = `上傳中… (${(blob.size / 1024).toFixed(0)} KB)`;
+
+    // 6) convert to base64 for JSON upload (litterbox limit is fine for ~300KB)
+    const dataUrl = await new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(fr.result);
+      fr.onerror = reject;
+      fr.readAsDataURL(blob);
+    });
+    const base64 = dataUrl.split(',')[1];
+
+    // 7) POST /api/upload
+    const r = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: base64, mime: 'image/jpeg', name: 'photo.jpg' })
+    });
+    const j = await r.json();
+    if (!r.ok || !j.url) throw new Error(j.error || 'upload failed');
+    status.textContent = '已選圖片（送出後 24h 自動刪除）';
+    state.pendingImage = { url: j.url, mime: 'image/jpeg' };
+  } catch (e) {
+    console.error('image upload error', e);
+    status.textContent = '上傳失敗：' + e.message;
+    preview.classList.add('hidden');
+    alert('圖片上傳失敗：' + e.message);
+  } finally {
+    label.classList.remove('uploading');
+    // reset input so same file can be re-picked
+    $('imageInput').value = '';
+  }
 }
 
 // auto-grow textarea: 1 -> up to 5 lines
@@ -382,6 +464,20 @@ function renderMessages() {
     meta.className = 'meta';
     meta.textContent = `${m.from} · ${formatTime(m.ts)}`;
 
+    div.appendChild(meta);
+
+    // Image (if present)
+    if (m.image) {
+      const img = document.createElement('img');
+      img.className = 'thumb';
+      img.src = m.image;
+      img.alt = '圖片訊息';
+      img.loading = 'lazy';
+      img.onclick = () => window.open(m.image, '_blank', 'noopener');
+      img.onerror = () => { img.alt = '（圖片已過期，24h 自動刪除）'; img.style.opacity = '0.4'; };
+      div.appendChild(img);
+    }
+
     const textEl = document.createElement('div');
     textEl.className = 'text';
     const showingOrig = state.showOriginal.has(m.id);
@@ -396,7 +492,6 @@ function renderMessages() {
       renderMessages();
     };
 
-    div.appendChild(meta);
     div.appendChild(textEl);
     div.appendChild(btn);
     list.appendChild(div);
@@ -414,6 +509,15 @@ function scrollToBottom() {
 document.addEventListener('DOMContentLoaded', () => {
   $('joinBtn').addEventListener('click', joinRoom);
   $('leaveBtn').addEventListener('click', leaveRoom);
+  $('imageInput').addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) handleImagePick(file);
+  });
+  $('imagePreviewCancel').addEventListener('click', () => {
+    state.pendingImage = null;
+    $('imagePreview').classList.add('hidden');
+    $('imageInput').value = '';
+  });
   $('roomInput').addEventListener('input', (e) => {
     e.target.value = e.target.value.toUpperCase();
   });

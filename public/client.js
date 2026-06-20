@@ -505,6 +505,26 @@ function autoGrowTextarea(el) {
   el.style.overflowY = el.scrollHeight > maxH ? 'auto' : 'hidden';
 }
 
+// --- image lightbox modal ---
+function openImageModal(url) {
+  const modal = $('imageModal');
+  const img = $('imageModalImg');
+  if (!modal || !img) return;
+  img.src = url;
+  modal.classList.remove('hidden');
+  document.body.classList.add('modal-open');
+  // focus the close button for keyboard users
+  setTimeout(() => $('imageModalClose') && $('imageModalClose').focus(), 0);
+}
+function closeImageModal() {
+  const modal = $('imageModal');
+  const img = $('imageModalImg');
+  if (!modal) return;
+  modal.classList.add('hidden');
+  document.body.classList.remove('modal-open');
+  if (img) img.src = ''; // free memory
+}
+
 // --- render ---
 function pickDisplayText(m) {
   // display in user's display language; fall back to original
@@ -545,7 +565,7 @@ function renderMessages() {
         img.src = url;
         img.alt = '圖片訊息';
         img.loading = 'lazy';
-        img.onclick = () => window.open(url, '_blank', 'noopener');
+        img.onclick = () => openImageModal(url);
         img.onerror = () => { img.alt = '（圖片已過期）'; img.style.opacity = '0.4'; };
         gallery.appendChild(img);
       });
@@ -605,6 +625,17 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     setImageExpiry('24h');
   }
+  // Image lightbox modal: close via X button, backdrop click, or Escape key
+  $('imageModalClose').addEventListener('click', closeImageModal);
+  $('imageModal').addEventListener('click', (e) => {
+    // close when clicking the backdrop (not the image itself)
+    if (e.target === $('imageModal')) closeImageModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !$('imageModal').classList.contains('hidden')) {
+      closeImageModal();
+    }
+  });
   $('roomInput').addEventListener('input', (e) => {
     e.target.value = e.target.value.toUpperCase();
   });

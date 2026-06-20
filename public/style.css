@@ -281,6 +281,48 @@ button.primary:disabled { background: #aaa; cursor: not-allowed; }
 }
 .message.mine .toggle-original { text-align: right; }
 
+/* === delete button (own messages only) === */
+.message .meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.message .meta .delete-btn {
+  background: none;
+  border: none;
+  color: #c00;
+  font-size: 12px;
+  padding: 2px 4px;
+  margin: 0 0 0 auto;
+  cursor: pointer;
+  opacity: 0.5;
+  font-family: inherit;
+  line-height: 1;
+  border-radius: 4px;
+  transition: opacity 0.15s, background 0.15s;
+}
+.message .meta .delete-btn:hover { opacity: 1; background: rgba(204, 0, 0, 0.08); }
+.message .meta .delete-btn:active { transform: scale(0.92); }
+
+/* === deleted message === */
+.message.deleted {
+  background: transparent;
+  box-shadow: none;
+  border: 1px dashed #d0d7de;
+  opacity: 0.7;
+}
+.message.deleted.mine {
+  background: transparent;
+  color: #888;
+}
+.message.deleted .meta { color: #999; font-style: italic; }
+.deleted-placeholder {
+  font-size: 13px;
+  color: #999;
+  font-style: italic;
+  margin-top: 2px;
+}
+
 .composer {
   display: grid;
   grid-template-columns: 44px 1fr 52px;

@@ -228,6 +228,17 @@ function connect() {
       addSystemMessage(msg.text);
     } else if (msg.type === 'system') {
       addSystemMessage(msg.text);
+    } else if (msg.type === 'deleted' && msg.id) {
+      const target = state.messages.find((m) => m && m.id === msg.id);
+      if (target) {
+        target.deleted = true;
+        target.original = '';
+        target.translations = {};
+        delete target.images;
+        target.deletedTs = msg.ts || Date.now();
+        cacheSave(state.room, state.messages);
+        renderMessages();
+      }
     }
   };
 
@@ -495,6 +506,19 @@ function setImageExpiry(t) {
   try { localStorage.setItem('chatImageExpiry', t); } catch (e) {}
 }
 
+// --- delete own message ---
+function deleteMessage(id) {
+  const target = state.messages.find((m) => m && m.id === id);
+  if (!target || target.deleted) return;
+  if (target.from !== state.name) return;
+  if (!confirm('確定刪除這則訊息？（對方也會看到「已刪除」）')) return;
+  if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
+    setStatus('尚未連線，無法刪除', 'error');
+    return;
+  }
+  state.ws.send(JSON.stringify({ type: 'delete', id }));
+}
+
 // auto-grow textarea: 1 -> up to 5 lines
 function autoGrowTextarea(el) {
   el.style.height = 'auto';
@@ -544,13 +568,41 @@ function renderMessages() {
     }
     const isMine = m.from === state.name;
     const div = document.createElement('div');
-    div.className = 'message' + (isMine ? ' mine' : '');
+    div.className = 'message' + (isMine ? ' mine' : '') + (m.deleted ? ' deleted' : '');
 
     const meta = document.createElement('div');
     meta.className = 'meta';
-    meta.textContent = `${m.from} · ${formatTime(m.ts)}`;
-
+    if (m.deleted) {
+      meta.textContent = `${m.from} · ${formatTime(m.ts)} · 已刪除`;
+    } else {
+      meta.textContent = `${m.from} · ${formatTime(m.ts)}`;
+    }
     div.appendChild(meta);
+
+    // Delete button — own messages only, hide on deleted ones
+    if (isMine && !m.deleted) {
+      const delBtn = document.createElement('button');
+      delBtn.className = 'delete-btn';
+      delBtn.type = 'button';
+      delBtn.textContent = '✕';
+      delBtn.title = '刪除這則訊息';
+      delBtn.setAttribute('aria-label', '刪除訊息');
+      delBtn.onclick = (e) => {
+        e.stopPropagation();
+        deleteMessage(m.id);
+      };
+      meta.appendChild(delBtn);
+    }
+
+    if (m.deleted) {
+      // soft-deleted: show placeholder, no text/image/toggle
+      const ph = document.createElement('div');
+      ph.className = 'deleted-placeholder';
+      ph.textContent = '（訊息已刪除）';
+      div.appendChild(ph);
+      list.appendChild(div);
+      continue;
+    }
 
     // Image(s) (if present) — prefer new `images: []` array, fall back to legacy `image: 'url'`
     const imgs = Array.isArray(m.images) && m.images.length

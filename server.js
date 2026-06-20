@@ -345,6 +345,21 @@ wss.on('connection', (ws) => {
       if (history.length > 1000) history.splice(0, history.length - 1000);
       await writeRoom(c.room, history);
       broadcast(c.room, { type: 'message', message: record });
+    } else if (msg.type === 'delete' && c.room) {
+      // sender-only soft delete: blank the text + images, mark deleted=true, broadcast id
+      const msgId = String(msg.id || '').slice(0, 64);
+      if (!/^[\w-]{1,64}$/.test(msgId)) return;
+      const history = await readRoom(c.room);
+      const target = history.find((m) => m && m.id === msgId);
+      if (!target) return;
+      if (target.from !== c.name) return; // only sender can delete
+      target.deleted = true;
+      target.original = '';
+      target.translations = {};
+      delete target.images;
+      target.deletedTs = Date.now();
+      await writeRoom(c.room, history);
+      broadcast(c.room, { type: 'deleted', id: msgId, by: c.name, ts: target.deletedTs });
     } else if (msg.type === 'setLang' && c.room) {
       c.displayLang = ['en', 'id', 'zh-TW'].includes(msg.displayLang) ? msg.displayLang : c.displayLang;
     }

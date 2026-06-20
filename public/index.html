@@ -60,8 +60,18 @@
 
       <div id="messageList" class="messages" aria-live="polite"></div>
 
+      <div id="imagePreview" class="image-preview hidden">
+        <img id="imagePreviewImg" alt="預覽">
+        <button type="button" id="imagePreviewCancel" class="image-preview-cancel" aria-label="取消圖片">✕</button>
+        <span id="imagePreviewStatus" class="image-preview-status"></span>
+      </div>
+
       <form id="sendForm" class="composer">
-        <textarea id="messageInput" placeholder="輸入訊息…" rows="1" maxlength="2000"></textarea>
+        <label class="img-btn" title="拍照或選圖（會自動壓縮）">
+          <input type="file" id="imageInput" accept="image/*" capture="environment" hidden>
+          📷
+        </label>
+        <textarea id="messageInput" placeholder="輸入訊息…（可加圖片說明）" rows="1" maxlength="2000"></textarea>
         <button type="submit" class="primary send-btn" aria-label="送出">➤</button>
       </form>
       <div id="statusLine" class="status">連線中…</div>

@@ -360,8 +360,9 @@ async function sendMessage() {
   updateImageBtnState();
 }
 
-// --- image upload: pick → canvas resize (max 1280px, JPEG 0.75) → POST /api/upload ---
-const MAX_IMG_DIM = 1280;
+// --- image upload: pick → canvas resize (max 1024px, JPEG 0.6) → POST /api/upload (raw bytes) ---
+const MAX_IMG_DIM = 1024;       // smaller = under Render's ~1MB body limit even on busy photos
+const JPEG_QUALITY = 0.6;       // tight enough to keep file under 1MB, still clear
 async function handleImagePick(file) {
   if (!file || !file.type.startsWith('image/')) return;
   if (file.size > 20 * 1024 * 1024) {
@@ -385,7 +386,7 @@ async function handleImagePick(file) {
   try {
     // 1) decode
     const bitmap = await createImageBitmap(file);
-    // 2) resize to max 1280px
+    // 2) resize to max 1024px
     let { width, height } = bitmap;
     const scale = Math.min(1, MAX_IMG_DIM / Math.max(width, height));
     const w = Math.round(width * scale);
@@ -397,27 +398,24 @@ async function handleImagePick(file) {
     const ctx = canvas.getContext('2d');
     ctx.drawImage(bitmap, 0, 0, w, h);
     bitmap.close && bitmap.close();
-    // 4) export as JPEG blob (0.75 quality)
+    // 4) export as JPEG blob (0.6 quality) — smaller payload stays under Render body cap
     const blob = await new Promise((resolve, reject) => {
-      canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob fail')), 'image/jpeg', 0.75);
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob fail')), 'image/jpeg', JPEG_QUALITY);
     });
-    // 5) convert to base64 for JSON upload
-    const dataUrl = await new Promise((resolve, reject) => {
-      const fr = new FileReader();
-      fr.onload = () => resolve(fr.result);
-      fr.onerror = reject;
-      fr.readAsDataURL(blob);
-    });
-    const base64 = dataUrl.split(',')[1];
-
-    // 6) POST /api/upload with current expiry
-    const r = await fetch('/api/upload', {
+    // 5) POST /api/upload as raw bytes (no base64 overhead)
+    const r = await fetch('/api/upload?time=' + encodeURIComponent(state.imageExpiry), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data: base64, mime: 'image/jpeg', name: 'photo.jpg', time: state.imageExpiry })
+      headers: { 'Content-Type': 'image/jpeg' },
+      body: blob
     });
+    if (!r.ok) {
+      // server returns JSON {error}; if it doesn't, treat as size limit
+      let msg;
+      try { msg = (await r.json()).error; } catch { msg = 'HTTP ' + r.status; }
+      throw new Error(msg || ('HTTP ' + r.status));
+    }
     const j = await r.json();
-    if (!r.ok || !j.url) throw new Error(j.error || 'upload failed');
+    if (!j.url) throw new Error('no url in response');
     // swap in uploaded url
     const item = state.pendingImages[idx];
     if (item) {
@@ -430,7 +428,7 @@ async function handleImagePick(file) {
     console.error('image upload error', e);
     // remove the failed placeholder
     state.pendingImages = state.pendingImages.filter((p) => p.previewUrl !== previewUrl);
-    alert('圖片上傳失敗：' + e.message);
+    alert('圖片上傳失敗：' + e.message + '\n（照片太大？試著選解析度較低的）');
   } finally {
     label.classList.remove('uploading');
     renderImagePreview();

@@ -151,16 +151,18 @@ function postFix(text, from, to, originalInput) {
 app.use(express.json({ limit: '64kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- image upload proxy (litterbox.catbox.moe, 24h auto-expire) ---
+// --- image upload proxy (litterbox.catbox.moe, 1h/12h/24h/72h auto-expire) ---
 const LITTERBOX_URL = 'https://litterbox.catbox.moe/resources/internals/api.php';
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5 MB after client-side resize
+const ALLOWED_EXPIRY = ['1h', '12h', '24h', '72h'];
 
 app.post('/api/upload', async (req, res) => {
   try {
-    const { data, mime, name } = req.body || {};
+    const { data, mime, name, time } = req.body || {};
     if (typeof data !== 'string' || !mime) {
       return res.status(400).json({ error: 'missing data/mime' });
     }
+    const expiry = ALLOWED_EXPIRY.includes(time) ? time : '24h';
     const buffer = Buffer.from(data, 'base64');
     if (buffer.length > MAX_UPLOAD_BYTES) {
       return res.status(400).json({ error: 'too large', size: buffer.length });
@@ -171,7 +173,7 @@ app.post('/api/upload', async (req, res) => {
     const filename = (name && /^[\w.\-]{1,64}$/.test(name)) ? name : 'image.jpg';
     const form = new FormData();
     form.append('reqtype', 'fileupload');
-    form.append('time', '24h');
+    form.append('time', expiry);
     form.append('fileToUpload', new Blob([buffer], { type: mime }), filename);
     const r = await fetch(LITTERBOX_URL, { method: 'POST', body: form });
     if (!r.ok) throw new Error('upstream ' + r.status);
@@ -179,7 +181,7 @@ app.post('/api/upload', async (req, res) => {
     if (!/^https:\/\/litter\.catbox\.moe\//.test(url)) {
       throw new Error('unexpected upstream response: ' + url.slice(0, 120));
     }
-    res.json({ url, expiresIn: '24h' });
+    res.json({ url, expiresIn: expiry });
   } catch (e) {
     console.error('upload error:', e.message);
     res.status(500).json({ error: e.message });
@@ -310,9 +312,21 @@ wss.on('connection', (ws) => {
       broadcast(c.room, { type: 'presence', text: `${c.name} joined`, ts: Date.now() }, ws);
     } else if (msg.type === 'send' && c.room) {
       const original = String(msg.original || '').slice(0, 2000);
-      if (!original) return;
       const originalLang = ['en', 'id', 'zh-TW'].includes(msg.originalLang) ? msg.originalLang : 'en';
       const translations = (msg.translations && typeof msg.translations === 'object') ? msg.translations : {};
+
+      // accept either new `images: []` array (preferred) or legacy `image: 'url'` (back-compat)
+      let images = [];
+      if (Array.isArray(msg.images)) {
+        images = msg.images
+          .filter((u) => typeof u === 'string' && /^https:\/\/litter\.catbox\.moe\/[\w.\-]+$/.test(u))
+          .slice(0, 4);
+      } else if (typeof msg.image === 'string' && /^https:\/\/litter\.catbox\.moe\/[\w.\-]+$/.test(msg.image)) {
+        images = [msg.image];
+      }
+
+      // require at least text OR image
+      if (!original && images.length === 0) return;
 
       const record = {
         id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
@@ -322,6 +336,7 @@ wss.on('connection', (ws) => {
         translations,
         ts: Date.now()
       };
+      if (images.length) record.images = images;
       const history = await readRoom(c.room);
       history.push(record);
       // cap history per room at 1000

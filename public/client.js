@@ -16,9 +16,12 @@ const state = {
   messages: [],
   showOriginal: new Set(), // message ids currently showing original
   pendingTranslations: new Set(), // "msgId|lang" keys
-  pendingImage: null, // { url, mime } when user picked image but not sent yet
+  pendingImages: [], // [{ url, mime }] when user picked image(s) but not sent yet (max 4)
+  imageExpiry: '24h', // 1h / 12h / 24h / 72h
   reconnectAttempts: 0
 };
+
+const MAX_IMAGES = 4;
 
 const $ = (id) => document.getElementById(id);
 
@@ -321,8 +324,8 @@ function autoDetectLang(text) {
 async function sendMessage() {
   const input = $('messageInput');
   const text = input.value.trim();
-  const pendingImage = state.pendingImage; // { url, mime } or null
-  if (!text && !pendingImage) return;
+  const pendingImages = state.pendingImages.slice(); // snapshot
+  if (!text && pendingImages.length === 0) return;
   if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
     setStatus('尚未連線，無法送出', 'error');
     return;
@@ -348,13 +351,13 @@ async function sendMessage() {
     original: text || '',
     originalLang: text ? autoDetectLang(text) : 'zh-TW',
     translations,
-    image: pendingImage ? pendingImage.url : undefined
+    images: pendingImages.map((p) => p.url)
   }));
 
   // clear preview
-  state.pendingImage = null;
-  const pv = $('imagePreview');
-  if (pv) pv.classList.add('hidden');
+  state.pendingImages = [];
+  renderImagePreview();
+  updateImageBtnState();
 }
 
 // --- image upload: pick → canvas resize (max 1280px, JPEG 0.75) → POST /api/upload ---
@@ -365,13 +368,19 @@ async function handleImagePick(file) {
     alert('圖片太大（>20MB），請先壓縮');
     return;
   }
-  const status = $('imagePreviewStatus');
-  const preview = $('imagePreview');
-  const img = $('imagePreviewImg');
+  if (state.pendingImages.length >= MAX_IMAGES) {
+    alert(`最多一次傳 ${MAX_IMAGES} 張圖片`);
+    return;
+  }
   const label = document.querySelector('.img-btn');
   label.classList.add('uploading');
-  status.textContent = '壓縮中…';
-  preview.classList.remove('hidden');
+
+  // optimistic preview (use object URL for instant feedback while uploading)
+  const previewUrl = URL.createObjectURL(file);
+  const idx = state.pendingImages.length;
+  state.pendingImages.push({ url: null, mime: 'image/jpeg', previewUrl, status: 'uploading' });
+  renderImagePreview();
+  updateImageBtnState();
 
   try {
     // 1) decode
@@ -392,13 +401,7 @@ async function handleImagePick(file) {
     const blob = await new Promise((resolve, reject) => {
       canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob fail')), 'image/jpeg', 0.75);
     });
-    // 5) show preview
-    const previewUrl = URL.createObjectURL(blob);
-    img.src = previewUrl;
-    img.onload = () => URL.revokeObjectURL(previewUrl);
-    status.textContent = `上傳中… (${(blob.size / 1024).toFixed(0)} KB)`;
-
-    // 6) convert to base64 for JSON upload (litterbox limit is fine for ~300KB)
+    // 5) convert to base64 for JSON upload
     const dataUrl = await new Promise((resolve, reject) => {
       const fr = new FileReader();
       fr.onload = () => resolve(fr.result);
@@ -407,26 +410,91 @@ async function handleImagePick(file) {
     });
     const base64 = dataUrl.split(',')[1];
 
-    // 7) POST /api/upload
+    // 6) POST /api/upload with current expiry
     const r = await fetch('/api/upload', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data: base64, mime: 'image/jpeg', name: 'photo.jpg' })
+      body: JSON.stringify({ data: base64, mime: 'image/jpeg', name: 'photo.jpg', time: state.imageExpiry })
     });
     const j = await r.json();
     if (!r.ok || !j.url) throw new Error(j.error || 'upload failed');
-    status.textContent = '已選圖片（送出後 24h 自動刪除）';
-    state.pendingImage = { url: j.url, mime: 'image/jpeg' };
+    // swap in uploaded url
+    const item = state.pendingImages[idx];
+    if (item) {
+      item.url = j.url;
+      item.mime = 'image/jpeg';
+      item.status = 'done';
+      item.expiresIn = j.expiresIn || state.imageExpiry;
+    }
   } catch (e) {
     console.error('image upload error', e);
-    status.textContent = '上傳失敗：' + e.message;
-    preview.classList.add('hidden');
+    // remove the failed placeholder
+    state.pendingImages = state.pendingImages.filter((p) => p.previewUrl !== previewUrl);
     alert('圖片上傳失敗：' + e.message);
   } finally {
     label.classList.remove('uploading');
+    renderImagePreview();
+    updateImageBtnState();
     // reset input so same file can be re-picked
     $('imageInput').value = '';
   }
+}
+
+function removePendingImage(idx) {
+  state.pendingImages.splice(idx, 1);
+  renderImagePreview();
+  updateImageBtnState();
+}
+
+function renderImagePreview() {
+  const preview = $('imagePreview');
+  if (!preview) return;
+  if (state.pendingImages.length === 0) {
+    preview.classList.add('hidden');
+    preview.innerHTML = '';
+    return;
+  }
+  preview.classList.remove('hidden');
+  preview.innerHTML = '';
+  state.pendingImages.forEach((p, idx) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'image-preview-item';
+    const img = document.createElement('img');
+    img.src = p.previewUrl || p.url;
+    img.alt = `圖片 ${idx + 1}`;
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.className = 'image-preview-cancel';
+    cancel.textContent = '✕';
+    cancel.setAttribute('aria-label', `取消圖片 ${idx + 1}`);
+    cancel.onclick = () => removePendingImage(idx);
+    const status = document.createElement('div');
+    status.className = 'image-preview-status';
+    if (p.status === 'uploading') status.textContent = '上傳中…';
+    else if (p.status === 'done') status.textContent = `${idx + 1}/${state.pendingImages.length} · ${p.expiresIn || state.imageExpiry} 自動刪除`;
+    else status.textContent = '';
+    wrap.appendChild(img);
+    wrap.appendChild(cancel);
+    wrap.appendChild(status);
+    preview.appendChild(wrap);
+  });
+}
+
+function updateImageBtnState() {
+  const label = document.querySelector('.img-btn');
+  if (!label) return;
+  const full = state.pendingImages.length >= MAX_IMAGES;
+  label.classList.toggle('disabled', full);
+  label.title = full ? `最多 ${MAX_IMAGES} 張` : '拍照或選圖（會自動壓縮）';
+}
+
+function setImageExpiry(t) {
+  if (!['1h', '12h', '24h', '72h'].includes(t)) return;
+  state.imageExpiry = t;
+  document.querySelectorAll('.expiry-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.expiry === t);
+  });
+  try { localStorage.setItem('chatImageExpiry', t); } catch (e) {}
 }
 
 // auto-grow textarea: 1 -> up to 5 lines
@@ -466,16 +534,24 @@ function renderMessages() {
 
     div.appendChild(meta);
 
-    // Image (if present)
-    if (m.image) {
-      const img = document.createElement('img');
-      img.className = 'thumb';
-      img.src = m.image;
-      img.alt = '圖片訊息';
-      img.loading = 'lazy';
-      img.onclick = () => window.open(m.image, '_blank', 'noopener');
-      img.onerror = () => { img.alt = '（圖片已過期，24h 自動刪除）'; img.style.opacity = '0.4'; };
-      div.appendChild(img);
+    // Image(s) (if present) — prefer new `images: []` array, fall back to legacy `image: 'url'`
+    const imgs = Array.isArray(m.images) && m.images.length
+      ? m.images
+      : (m.image ? [m.image] : []);
+    if (imgs.length) {
+      const gallery = document.createElement('div');
+      gallery.className = 'image-gallery' + (imgs.length > 1 ? ' multi' : '');
+      imgs.forEach((url) => {
+        const img = document.createElement('img');
+        img.className = 'thumb';
+        img.src = url;
+        img.alt = '圖片訊息';
+        img.loading = 'lazy';
+        img.onclick = () => window.open(url, '_blank', 'noopener');
+        img.onerror = () => { img.alt = '（圖片已過期）'; img.style.opacity = '0.4'; };
+        gallery.appendChild(img);
+      });
+      div.appendChild(gallery);
     }
 
     const textEl = document.createElement('div');
@@ -510,14 +586,27 @@ document.addEventListener('DOMContentLoaded', () => {
   $('joinBtn').addEventListener('click', joinRoom);
   $('leaveBtn').addEventListener('click', leaveRoom);
   $('imageInput').addEventListener('change', (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (file) handleImagePick(file);
+    const files = e.target.files;
+    if (!files || !files.length) return;
+    // upload sequentially to avoid hammering server
+    (async () => {
+      for (const file of Array.from(files)) {
+        await handleImagePick(file);
+        if (state.pendingImages.length >= MAX_IMAGES) break;
+      }
+    })();
   });
-  $('imagePreviewCancel').addEventListener('click', () => {
-    state.pendingImage = null;
-    $('imagePreview').classList.add('hidden');
-    $('imageInput').value = '';
+  // Expiry selector (1h/12h/24h/72h)
+  document.querySelectorAll('.expiry-btn').forEach(btn => {
+    btn.addEventListener('click', () => setImageExpiry(btn.dataset.expiry));
   });
+  // restore saved expiry
+  const savedExpiry = localStorage.getItem('chatImageExpiry');
+  if (savedExpiry && ['1h', '12h', '24h', '72h'].includes(savedExpiry)) {
+    setImageExpiry(savedExpiry);
+  } else {
+    setImageExpiry('24h');
+  }
   $('roomInput').addEventListener('input', (e) => {
     e.target.value = e.target.value.toUpperCase();
   });

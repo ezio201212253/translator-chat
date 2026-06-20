@@ -58,17 +58,22 @@
         </div>
       </header>
 
-      <div id="messageList" class="messages" aria-live="polite"></div>
-
-      <div id="imagePreview" class="image-preview hidden">
-        <img id="imagePreviewImg" alt="預覽">
-        <button type="button" id="imagePreviewCancel" class="image-preview-cancel" aria-label="取消圖片">✕</button>
-        <span id="imagePreviewStatus" class="image-preview-status"></span>
+      <div class="expiry-bar" role="group" aria-label="圖片到期時間">
+        <span class="expiry-label">圖片保留：</span>
+        <button type="button" class="expiry-btn" data-expiry="1h">1 小時</button>
+        <button type="button" class="expiry-btn" data-expiry="12h">12 小時</button>
+        <button type="button" class="expiry-btn" data-expiry="24h">24 小時</button>
+        <button type="button" class="expiry-btn" data-expiry="72h">3 天</button>
+        <span class="expiry-hint">（最多 4 張）</span>
       </div>
 
+      <div id="messageList" class="messages" aria-live="polite"></div>
+
+      <div id="imagePreview" class="image-preview hidden"></div>
+
       <form id="sendForm" class="composer">
-        <label class="img-btn" title="拍照或選圖（會自動壓縮）">
-          <input type="file" id="imageInput" accept="image/*" capture="environment" hidden>
+        <label class="img-btn" title="拍照或選圖（會自動壓縮，可一次選多張）">
+          <input type="file" id="imageInput" accept="image/*" capture="environment" multiple hidden>
           📷
         </label>
         <textarea id="messageInput" placeholder="輸入訊息…（可加圖片說明）" rows="1" maxlength="2000"></textarea>

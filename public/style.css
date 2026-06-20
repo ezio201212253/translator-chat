@@ -139,6 +139,22 @@ button.primary:disabled { background: #aaa; cursor: not-allowed; }
 }
 .topbar-actions { display: flex; gap: 4px; flex-shrink: 0; }
 
+.leave-btn {
+  font-size: 12px;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #555;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  min-width: auto;
+  margin-left: 6px;
+  font-family: inherit;
+}
+.leave-btn:hover { background: #f5f5f5; border-color: #ccc; }
+.leave-btn:active { transform: scale(0.96); }
+
 .lang-btn {
   font-size: 12px;
   padding: 6px 10px;

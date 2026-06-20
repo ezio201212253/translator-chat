@@ -116,8 +116,9 @@ function joinRoom() {
   const name = $('nameInput').value.trim();
   const displayLang = $('displayLang').value;
 
-  if (!/^[A-Z0-9]{4,8}$/.test(room)) {
-    alert('房號必須是 4-8 個英文字母或數字');
+  // 房號限制：英數字 1-32 字（任何工地編號、棟層戶別皆可，不再限制長度）
+  if (!/^[A-Z0-9]{1,32}$/.test(room)) {
+    alert('房號只能是英文字母和數字（最多 32 字）');
     return;
   }
   if (!name) {
@@ -144,6 +145,25 @@ function joinRoom() {
   $('messageInput').focus();
 
   connect();
+}
+
+// --- 返回首頁（離開當前房號，回到登入畫面） ---
+function leaveRoom() {
+  // 關閉 WebSocket
+  if (state.ws) {
+    try { state.ws.close(); } catch (e) { /* ignore */ }
+    state.ws = null;
+  }
+  state.room = null;
+  state.name = null;
+  state.messages = [];
+  // 切換面板
+  $('chatPanel').classList.add('hidden');
+  $('loginPanel').classList.remove('hidden');
+  $('statusLine').textContent = '連線中…';
+  // 清空訊息列表
+  const list = $('messageList');
+  if (list) list.innerHTML = '';
 }
 
 function connect() {
@@ -393,6 +413,7 @@ function scrollToBottom() {
 // --- wire up ---
 document.addEventListener('DOMContentLoaded', () => {
   $('joinBtn').addEventListener('click', joinRoom);
+  $('leaveBtn').addEventListener('click', leaveRoom);
   $('roomInput').addEventListener('input', (e) => {
     e.target.value = e.target.value.toUpperCase();
   });

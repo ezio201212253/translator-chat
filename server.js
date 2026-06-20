@@ -152,29 +152,31 @@ app.use(express.json({ limit: '64kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- image upload proxy (litterbox.catbox.moe, 1h/12h/24h/72h auto-expire) ---
+// Client posts raw image bytes (content-type: image/jpeg) — no base64/JSON overhead,
+// so we stay well under Render's ~1 MB request body limit.
 const LITTERBOX_URL = 'https://litterbox.catbox.moe/resources/internals/api.php';
-const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5 MB after client-side resize
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024; // 4 MB raw cap
 const ALLOWED_EXPIRY = ['1h', '12h', '24h', '72h'];
 
-app.post('/api/upload', async (req, res) => {
+app.post('/api/upload', express.raw({
+  type: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+  limit: MAX_UPLOAD_BYTES
+}), async (req, res) => {
   try {
-    const { data, mime, name, time } = req.body || {};
-    if (typeof data !== 'string' || !mime) {
-      return res.status(400).json({ error: 'missing data/mime' });
+    if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+      return res.status(400).json({ error: 'empty body' });
     }
-    const expiry = ALLOWED_EXPIRY.includes(time) ? time : '24h';
-    const buffer = Buffer.from(data, 'base64');
-    if (buffer.length > MAX_UPLOAD_BYTES) {
-      return res.status(400).json({ error: 'too large', size: buffer.length });
+    if (req.body.length > MAX_UPLOAD_BYTES) {
+      return res.status(413).json({ error: 'too large', size: req.body.length });
     }
-    if (!/^image\/(jpeg|png|webp|gif)$/.test(mime)) {
-      return res.status(400).json({ error: 'unsupported mime: ' + mime });
-    }
-    const filename = (name && /^[\w.\-]{1,64}$/.test(name)) ? name : 'image.jpg';
+    const mime = (req.headers['content-type'] || '').split(';')[0].trim();
+    const expiry = ALLOWED_EXPIRY.includes(req.query.time) ? req.query.time : '24h';
+    // Pick filename extension matching the source mime
+    const ext = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' })[mime] || 'jpg';
     const form = new FormData();
     form.append('reqtype', 'fileupload');
     form.append('time', expiry);
-    form.append('fileToUpload', new Blob([buffer], { type: mime }), filename);
+    form.append('fileToUpload', new Blob([req.body], { type: mime }), 'photo.' + ext);
     const r = await fetch(LITTERBOX_URL, { method: 'POST', body: form });
     if (!r.ok) throw new Error('upstream ' + r.status);
     const url = (await r.text()).trim();

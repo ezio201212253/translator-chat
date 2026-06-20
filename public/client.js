@@ -566,7 +566,9 @@ function renderMessages() {
         img.alt = '圖片訊息';
         img.loading = 'lazy';
         img.onclick = () => openImageModal(url);
-        img.onerror = () => { img.alt = '（圖片已過期）'; img.style.opacity = '0.4'; };
+        // no onerror: mobile browsers were firing it on transient network blips
+        // and showing the alt text instead of the image. Browser's native broken-image
+        // icon is enough feedback if the URL ever actually expires.
         gallery.appendChild(img);
       });
       div.appendChild(gallery);

@@ -71,6 +71,12 @@
 
       <div id="imagePreview" class="image-preview hidden"></div>
 
+      <!-- image lightbox modal (click any thumbnail to open) -->
+      <div id="imageModal" class="image-modal hidden" role="dialog" aria-modal="true" aria-label="圖片檢視">
+        <button type="button" id="imageModalClose" class="image-modal-close" aria-label="關閉">✕</button>
+        <img id="imageModalImg" class="image-modal-img" alt="">
+      </div>
+
       <form id="sendForm" class="composer">
         <label class="img-btn" title="拍照或選圖（會自動壓縮，可一次選多張）">
           <input type="file" id="imageInput" accept="image/*" capture="environment" multiple hidden>

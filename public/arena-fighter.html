@@ -2,94 +2,111 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <title>NEON ARENA — 3D Fighter</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
-*{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:hidden;background:#050510;font-family:'Rajdhani',sans-serif;color:#e8f0ff;user-select:none}
-#game-canvas{display:block;position:fixed;inset:0;width:100%;height:100%;z-index:0}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#050510;font-family:'Rajdhani',sans-serif;color:#e8f0ff;
+  user-select:none;-webkit-user-select:none;touch-action:none;overscroll-behavior:none}
+#game-canvas{display:block;position:fixed;inset:0;width:100%;height:100%;z-index:0;touch-action:none}
 #vignette{position:fixed;inset:0;pointer-events:none;z-index:5;box-shadow:inset 0 0 80px rgba(0,0,0,.55);transition:box-shadow .15s}
 #vignette.edge{box-shadow:inset 0 0 120px rgba(255,40,80,.55),inset 0 0 40px rgba(255,80,120,.35)}
 #vignette.hit{box-shadow:inset 0 0 100px rgba(255,200,50,.4)}
 
 /* —— SCREENS —— */
-.screen{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  background:radial-gradient(ellipse at 50% 30%,#1a1040 0%,#050510 70%);transition:opacity .4s}
+.screen{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  padding:max(12px,env(safe-area-inset-top)) 12px max(16px,env(safe-area-inset-bottom));
+  background:radial-gradient(ellipse at 50% 30%,#1a1040 0%,#050510 70%);transition:opacity .4s;
+  overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-y}
 .screen.hidden{opacity:0;pointer-events:none}
-.brand{font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(2.2rem,6vw,4.5rem);letter-spacing:.18em;
+.brand{font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(1.6rem,7vw,4.5rem);letter-spacing:.14em;
   background:linear-gradient(135deg,#00f0ff,#ff2d95 60%,#ffe066);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  text-shadow:0 0 40px rgba(0,240,255,.35);margin-bottom:.2rem}
-.tagline{font-size:1.1rem;letter-spacing:.4em;color:#7a8aaa;margin-bottom:2rem;text-transform:uppercase}
+  text-shadow:0 0 40px rgba(0,240,255,.35);margin:.4rem 0 .15rem;text-align:center;flex-shrink:0}
+.tagline{font-size:clamp(.75rem,2.5vw,1.1rem);letter-spacing:.28em;color:#7a8aaa;margin-bottom:1rem;text-transform:uppercase;text-align:center}
 
 /* Character select */
-#select-screen .row{display:flex;gap:2.5rem;flex-wrap:wrap;justify-content:center;align-items:stretch;margin-bottom:1.5rem}
-.fighter-card{width:min(320px,90vw);background:linear-gradient(180deg,rgba(20,30,60,.85),rgba(8,10,25,.95));
-  border:1px solid rgba(0,240,255,.25);border-radius:4px;padding:1.2rem 1.4rem;cursor:pointer;
-  transition:transform .2s,border-color .2s,box-shadow .2s;position:relative;overflow:hidden}
-.fighter-card:hover,.fighter-card.selected{transform:translateY(-4px);border-color:#00f0ff;box-shadow:0 0 28px rgba(0,240,255,.35)}
-.fighter-card.titan:hover,.fighter-card.titan.selected{border-color:#ff6b2d;box-shadow:0 0 28px rgba(255,107,45,.35)}
-.fighter-card h2{font-family:'Orbitron',sans-serif;font-size:1.6rem;letter-spacing:.15em;margin-bottom:.15rem}
+#select-screen .row{display:flex;gap:12px;flex-wrap:nowrap;justify-content:center;align-items:stretch;margin-bottom:1rem;
+  width:100%;max-width:920px;overflow-x:auto;padding:0 4px 8px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+.fighter-card{flex:0 0 min(280px,78vw);width:min(280px,78vw);scroll-snap-align:center;
+  background:linear-gradient(180deg,rgba(20,30,60,.85),rgba(8,10,25,.95));
+  border:1px solid rgba(0,240,255,.25);border-radius:10px;padding:1rem 1.1rem;cursor:pointer;
+  transition:transform .2s,border-color .2s,box-shadow .2s;position:relative;overflow:hidden;touch-action:manipulation}
+.fighter-card:active,.fighter-card.selected{transform:translateY(-2px);border-color:#00f0ff;box-shadow:0 0 28px rgba(0,240,255,.35)}
+.fighter-card.titan:active,.fighter-card.titan.selected{border-color:#ff6b2d;box-shadow:0 0 28px rgba(255,107,45,.35)}
+.fighter-card h2{font-family:'Orbitron',sans-serif;font-size:1.35rem;letter-spacing:.12em;margin-bottom:.1rem}
 .fighter-card.blitz h2{color:#00f0ff}.fighter-card.titan h2{color:#ff6b2d}
-.fighter-card .arch{font-size:.85rem;letter-spacing:.2em;color:#7a8aaa;margin-bottom:.8rem;text-transform:uppercase}
-.preview-wrap{height:220px;margin:0 -1.4rem .9rem;background:radial-gradient(ellipse at 50% 80%,rgba(0,240,255,.12),transparent 60%);position:relative;overflow:hidden}
+.fighter-card .arch{font-size:.75rem;letter-spacing:.18em;color:#7a8aaa;margin-bottom:.5rem;text-transform:uppercase}
+.preview-wrap{height:160px;margin:0 -1.1rem .7rem;background:radial-gradient(ellipse at 50% 80%,rgba(0,240,255,.12),transparent 60%);position:relative;overflow:hidden}
 .fighter-card.titan .preview-wrap{background:radial-gradient(ellipse at 50% 80%,rgba(255,107,45,.12),transparent 60%)}
-.preview-wrap canvas{position:absolute;left:0;top:0;width:100%!important;height:100%!important}
-.stat{display:flex;align-items:center;gap:.6rem;margin:.35rem 0;font-size:.9rem;letter-spacing:.08em}
-.stat label{width:72px;color:#9ab;text-transform:uppercase;font-size:.75rem}
-.bar{flex:1;height:8px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}
+.preview-wrap canvas{position:absolute;left:0;top:0;width:100%!important;height:100%!important;pointer-events:none}
+.stat{display:flex;align-items:center;gap:.5rem;margin:.28rem 0;font-size:.85rem;letter-spacing:.08em}
+.stat label{width:64px;color:#9ab;text-transform:uppercase;font-size:.7rem}
+.bar{flex:1;height:7px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}
 .bar i{display:block;height:100%;border-radius:2px}
 .blitz .bar i{background:linear-gradient(90deg,#00f0ff,#7af)}.titan .bar i{background:linear-gradient(90deg,#ff6b2d,#ffc14d)}
-.desc{font-size:.88rem;color:#a0b0c8;line-height:1.35;margin-top:.6rem}
+.desc{font-size:.8rem;color:#a0b0c8;line-height:1.35;margin-top:.45rem}
 
-.diff-row{display:flex;gap:.6rem;margin-bottom:1.4rem;align-items:center}
-.diff-row span{letter-spacing:.15em;color:#7a8aaa;font-size:.85rem;margin-right:.4rem;text-transform:uppercase}
-.diff-btn{font-family:'Orbitron',sans-serif;font-size:.75rem;letter-spacing:.12em;padding:.45rem 1rem;
-  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.15);color:#9ab;cursor:pointer;border-radius:2px;transition:.15s}
+.diff-row{display:flex;gap:.45rem;margin-bottom:1rem;align-items:center;flex-wrap:wrap;justify-content:center}
+.diff-row span{letter-spacing:.12em;color:#7a8aaa;font-size:.75rem;text-transform:uppercase;width:100%;text-align:center;margin-bottom:.2rem}
+.diff-btn{font-family:'Orbitron',sans-serif;font-size:.7rem;letter-spacing:.1em;padding:.55rem 1.1rem;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.15);color:#9ab;cursor:pointer;border-radius:8px;
+  transition:.15s;touch-action:manipulation;min-height:44px}
 .diff-btn.on{background:rgba(0,240,255,.15);border-color:#00f0ff;color:#fff;box-shadow:0 0 12px rgba(0,240,255,.3)}
 
-.btn{font-family:'Orbitron',sans-serif;font-weight:700;font-size:1rem;letter-spacing:.2em;padding:.85rem 2.4rem;
-  background:linear-gradient(135deg,#00c8e0,#ff2d95);border:none;color:#fff;cursor:pointer;border-radius:2px;
-  text-transform:uppercase;box-shadow:0 0 24px rgba(0,200,224,.4);transition:transform .15s,filter .15s}
-.btn:hover{transform:scale(1.04);filter:brightness(1.1)}
+.btn{font-family:'Orbitron',sans-serif;font-weight:700;font-size:.95rem;letter-spacing:.18em;padding:.95rem 2.2rem;
+  background:linear-gradient(135deg,#00c8e0,#ff2d95);border:none;color:#fff;cursor:pointer;border-radius:10px;
+  text-transform:uppercase;box-shadow:0 0 24px rgba(0,200,224,.4);transition:transform .15s,filter .15s;
+  touch-action:manipulation;min-height:48px;width:min(280px,90vw)}
+.btn:active{transform:scale(.97);filter:brightness(1.1)}
 .btn:disabled{opacity:.35;pointer-events:none;filter:grayscale(.5)}
-.controls-hint{margin-top:1.2rem;font-size:.8rem;color:#667;letter-spacing:.08em;text-align:center;line-height:1.6}
+.controls-hint{margin-top:.9rem;font-size:.72rem;color:#667;letter-spacing:.06em;text-align:center;line-height:1.55;max-width:92vw;padding-bottom:.5rem}
+#orient-tip{display:none;position:fixed;inset:0;z-index:50;background:rgba(5,5,16,.92);flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:24px;font-family:'Orbitron',sans-serif;letter-spacing:.12em}
+#orient-tip.show{display:flex}
+#orient-tip .phone{width:48px;height:80px;border:3px solid #00f0ff;border-radius:8px;margin-bottom:1.2rem;
+  animation:rotatePhone 1.6s ease-in-out infinite}
+@keyframes rotatePhone{0%,40%{transform:rotate(0)}60%,100%{transform:rotate(90deg)}}
 
 /* HUD */
 #hud{position:fixed;inset:0;z-index:10;pointer-events:none;opacity:0;transition:opacity .35s}
 #hud.show{opacity:1}
-.hud-top{display:flex;justify-content:space-between;align-items:flex-start;padding:1.1rem 1.5rem 0;gap:1rem}
-.fighter-hud{flex:1;max-width:420px}
+.hud-top{display:flex;justify-content:space-between;align-items:flex-start;
+  padding:max(8px,env(safe-area-inset-top)) 10px 0;gap:6px}
+.fighter-hud{flex:1;min-width:0;max-width:none}
 .fighter-hud.right{text-align:right}
-.name-row{display:flex;align-items:baseline;gap:.6rem;margin-bottom:.25rem}
+.name-row{display:flex;align-items:baseline;gap:.35rem;margin-bottom:.15rem}
 .fighter-hud.right .name-row{flex-direction:row-reverse}
-.fname{font-family:'Orbitron',sans-serif;font-weight:700;font-size:1rem;letter-spacing:.15em}
+.fname{font-family:'Orbitron',sans-serif;font-weight:700;font-size:clamp(.65rem,2.8vw,.95rem);letter-spacing:.1em}
 .fname.blitz{color:#00f0ff}.fname.titan{color:#ff6b2d}
-.fpips{display:flex;gap:4px}.fighter-hud.right .fpips{justify-content:flex-end}
-.pip{width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-radius:50%;background:transparent}
+.fpips{display:flex;gap:3px}.fighter-hud.right .fpips{justify-content:flex-end}
+.pip{width:10px;height:10px;border:2px solid rgba(255,255,255,.35);border-radius:50%;background:transparent}
 .pip.won{background:#ffe066;border-color:#ffe066;box-shadow:0 0 8px #ffe066}
-.hp-wrap{position:relative;height:18px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.2);border-radius:2px;overflow:hidden}
+.hp-wrap{position:relative;height:14px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.2);border-radius:2px;overflow:hidden}
 .hp-ghost{position:absolute;top:0;left:0;height:100%;width:100%;background:#ff4466;opacity:.45;transition:width .55s linear}
 .fighter-hud.right .hp-ghost,.fighter-hud.right .hp-fill,.fighter-hud.right .sp-fill{left:auto;right:0}
 .hp-fill{position:absolute;top:0;left:0;height:100%;width:100%;background:linear-gradient(90deg,#2dff8a,#7affc0);transition:width .08s}
-.sp-wrap{margin-top:5px;height:8px;background:rgba(0,0,0,.45);border:1px solid rgba(180,100,255,.3);border-radius:2px;overflow:hidden;position:relative}
+.sp-wrap{margin-top:4px;height:7px;background:rgba(0,0,0,.45);border:1px solid rgba(180,100,255,.3);border-radius:2px;overflow:hidden;position:relative}
 .sp-fill{position:absolute;top:0;left:0;height:100%;width:0%;background:linear-gradient(90deg,#a040ff,#ff40e0);transition:width .12s}
 .sp-fill.ready{animation:spPulse .6s ease-in-out infinite alternate;box-shadow:0 0 10px #ff40e0}
 @keyframes spPulse{from{filter:brightness(1)}to{filter:brightness(1.5)}}
-.timer-box{text-align:center;min-width:90px;padding-top:.2rem}
-.timer{font-family:'Orbitron',sans-serif;font-weight:900;font-size:2.4rem;letter-spacing:.08em;color:#fff;
+.timer-box{text-align:center;min-width:56px;padding-top:.1rem;flex-shrink:0}
+.timer{font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(1.4rem,5vw,2.4rem);letter-spacing:.06em;color:#fff;
   text-shadow:0 0 16px rgba(0,240,255,.5)}
-.round-label{font-size:.7rem;letter-spacing:.25em;color:#7a8aaa;text-transform:uppercase}
-.combo-box{position:fixed;left:1.5rem;top:50%;transform:translateY(-50%);opacity:0;transition:opacity .2s}
+.round-label{font-size:.55rem;letter-spacing:.18em;color:#7a8aaa;text-transform:uppercase}
+.combo-box{position:fixed;left:max(10px,env(safe-area-inset-left));top:22%;opacity:0;transition:opacity .2s;pointer-events:none}
 .combo-box.show{opacity:1}
-.combo-n{font-family:'Orbitron',sans-serif;font-size:2.8rem;font-weight:900;color:#ffe066;text-shadow:0 0 20px rgba(255,224,100,.6);line-height:1}
-.combo-l{font-size:.75rem;letter-spacing:.3em;color:#ffe066}.combo-d{font-size:1.1rem;color:#fff;margin-top:.2rem}
-.lock-ind{position:fixed;top:50%;left:50%;width:48px;height:48px;margin:-24px 0 0 -24px;pointer-events:none;
+.combo-n{font-family:'Orbitron',sans-serif;font-size:clamp(1.6rem,6vw,2.8rem);font-weight:900;color:#ffe066;text-shadow:0 0 20px rgba(255,224,100,.6);line-height:1}
+.combo-l{font-size:.65rem;letter-spacing:.22em;color:#ffe066}.combo-d{font-size:.9rem;color:#fff;margin-top:.15rem}
+.lock-ind{position:fixed;top:50%;left:50%;width:36px;height:36px;margin:-18px 0 0 -18px;pointer-events:none;
   border:2px solid rgba(0,240,255,.0);border-radius:4px;transform:rotate(45deg);transition:border-color .2s,opacity .2s;opacity:0}
-.lock-ind.on{border-color:rgba(0,240,255,.55);opacity:1;animation:lockPulse 1.2s ease-in-out infinite}
-@keyframes lockPulse{0%,100%{opacity:.55}50%{opacity:1}}
-.announce{position:fixed;top:38%;left:50%;transform:translate(-50%,-50%) scale(.8);font-family:'Orbitron',sans-serif;
-  font-weight:900;font-size:clamp(1.8rem,5vw,3.5rem);letter-spacing:.2em;color:#fff;text-shadow:0 0 30px rgba(0,240,255,.8);
+.lock-ind.on{border-color:rgba(0,240,255,.45);opacity:.7;animation:lockPulse 1.2s ease-in-out infinite}
+@keyframes lockPulse{0%,100%{opacity:.45}50%{opacity:.8}}
+.announce{position:fixed;top:32%;left:50%;transform:translate(-50%,-50%) scale(.8);font-family:'Orbitron',sans-serif;
+  font-weight:900;font-size:clamp(1.3rem,5.5vw,3.5rem);letter-spacing:.14em;color:#fff;text-shadow:0 0 30px rgba(0,240,255,.8);
   opacity:0;pointer-events:none;z-index:15;white-space:nowrap;text-align:center}
 .announce.show{animation:announceIn .9s ease-out forwards}
 @keyframes announceIn{0%{opacity:0;transform:translate(-50%,-50%) scale(1.4)}20%{opacity:1;transform:translate(-50%,-50%) scale(1)}
@@ -97,9 +114,77 @@ html,body{width:100%;height:100%;overflow:hidden;background:#050510;font-family:
 .super-flash{position:fixed;inset:0;z-index:12;pointer-events:none;background:radial-gradient(circle,rgba(255,255,255,.35),transparent 60%);
   opacity:0;transition:opacity .1s}
 .super-flash.on{opacity:1}
-#victory-screen .winner-name{font-family:'Orbitron',sans-serif;font-size:clamp(2rem,5vw,3.5rem);letter-spacing:.15em;margin:.5rem 0 1.5rem;
-  background:linear-gradient(135deg,#ffe066,#ff2d95);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-#victory-screen .sub{letter-spacing:.3em;color:#7a8aaa;margin-bottom:2rem;text-transform:uppercase}
+#victory-screen .winner-name{font-family:'Orbitron',sans-serif;font-size:clamp(1.8rem,6vw,3.5rem);letter-spacing:.12em;margin:.5rem 0 1.2rem;
+  background:linear-gradient(135deg,#ffe066,#ff2d95);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center}
+#victory-screen .sub{letter-spacing:.22em;color:#7a8aaa;margin-bottom:1.6rem;text-transform:uppercase;text-align:center}
+#victory-screen{justify-content:center}
+
+/* —— TOUCH CONTROLS —— */
+#touch-ui{position:fixed;inset:0;z-index:18;pointer-events:none;opacity:0;transition:opacity .25s;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+#touch-ui.show{opacity:1}
+#touch-ui.show .t-zone{pointer-events:auto}
+.t-zone{position:absolute;bottom:max(18px,env(safe-area-inset-bottom));}
+.t-zone.left{left:max(12px,env(safe-area-inset-left));}
+.t-zone.right{right:max(12px,env(safe-area-inset-right));}
+#stick{width:128px;height:128px;border-radius:50%;background:rgba(255,255,255,.06);border:2px solid rgba(0,240,255,.28);
+  position:relative;touch-action:none;box-shadow:inset 0 0 24px rgba(0,0,0,.35)}
+#stick-knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,rgba(0,240,255,.55),rgba(0,80,120,.45));
+  border:2px solid rgba(0,240,255,.7);box-shadow:0 0 16px rgba(0,240,255,.35);pointer-events:none}
+.abtn{position:absolute;border:none;border-radius:50%;color:#fff;font-family:'Orbitron',sans-serif;font-weight:700;
+  letter-spacing:.04em;touch-action:none;user-select:none;-webkit-user-select:none;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;line-height:1.05;
+  box-shadow:0 4px 18px rgba(0,0,0,.45);transition:transform .08s,filter .08s,box-shadow .08s}
+.abtn:active,.abtn.held{transform:scale(.92);filter:brightness(1.25)}
+.abtn small{font-size:.55em;opacity:.75;letter-spacing:.08em;margin-top:2px}
+#btn-light{width:78px;height:78px;right:8px;bottom:8px;font-size:.78rem;
+  background:radial-gradient(circle at 35% 30%,#5af0ff,#0088aa);border:2px solid #7fffff}
+#btn-heavy{width:64px;height:64px;right:92px;bottom:18px;font-size:.68rem;
+  background:radial-gradient(circle at 35% 30%,#ff9a4a,#c04010);border:2px solid #ffc14d}
+#btn-dodge{width:58px;height:58px;right:78px;bottom:92px;font-size:.62rem;
+  background:radial-gradient(circle at 35% 30%,#90ffa8,#208048);border:2px solid #7dff9a}
+#btn-block{width:58px;height:58px;right:16px;bottom:100px;font-size:.62rem;
+  background:radial-gradient(circle at 35% 30%,#9ab0ff,#3040a0);border:2px solid #a8c0ff}
+#btn-super{width:56px;height:56px;right:148px;bottom:88px;font-size:.58rem;
+  background:radial-gradient(circle at 35% 30%,#ff80f0,#8010c0);border:2px solid #ffa0ff;opacity:.45}
+#btn-super.ready{opacity:1;box-shadow:0 0 22px rgba(255,80,220,.75);animation:spPulse .7s ease-in-out infinite alternate}
+
+@media (min-width:900px){
+  #select-screen .row{flex-wrap:wrap;overflow:visible}
+  .fighter-card{flex-basis:320px;width:min(320px,90vw)}
+  .preview-wrap{height:200px}
+  .diff-row span{width:auto;margin:0 .4rem 0 0}
+  .hud-top{padding:1.1rem 1.5rem 0;gap:1rem}
+  .hp-wrap{height:18px}.timer{font-size:2.4rem}.fname{font-size:1rem}
+  .pip{width:14px;height:14px}
+}
+@media (orientation:portrait) and (max-width:900px){
+  #orient-tip.show{display:flex}
+  #stick{width:110px;height:110px}
+  #stick-knob{width:46px;height:46px;margin:-23px 0 0 -23px}
+  #btn-light{width:70px;height:70px}
+  #btn-heavy{width:58px;height:58px;right:84px}
+  #btn-dodge{right:70px;bottom:84px;width:52px;height:52px}
+  #btn-block{bottom:90px;width:52px;height:52px}
+  #btn-super{right:132px;bottom:78px;width:50px;height:50px}
+}
+@media (orientation:landscape) and (max-height:480px){
+  .preview-wrap{height:110px}
+  .brand{font-size:clamp(1.2rem,5vh,2rem);margin-top:2px}
+  .tagline{margin-bottom:.5rem}
+  .desc{display:none}
+  .fighter-card{padding:.7rem .85rem}
+  #stick{width:100px;height:100px}
+  #stick-knob{width:42px;height:42px;margin:-21px 0 0 -21px}
+  .t-zone{bottom:max(10px,env(safe-area-inset-bottom))}
+  #btn-light{width:64px;height:64px}
+  #btn-heavy{width:54px;height:54px;right:78px;bottom:12px}
+  #btn-dodge{width:48px;height:48px;right:66px;bottom:74px}
+  #btn-block{width:48px;height:48px;right:12px;bottom:80px}
+  #btn-super{width:46px;height:46px;right:122px;bottom:70px}
+  .combo-box{top:18%}
+}
 </style>
 </head>
 <body>
@@ -107,6 +192,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#050510;font-family:
 <div id="super-flash" class="super-flash"></div>
 <div id="announce" class="announce"></div>
 <div id="lock-ind" class="lock-ind"></div>
+<div id="orient-tip"><div class="phone"></div>請橫向拿手機遊玩<br/><span style="font-size:.75rem;letter-spacing:.08em;color:#7a8aaa;margin-top:.8rem;display:block">ROTATE TO LANDSCAPE</span></div>
 
 <!-- CHARACTER SELECT -->
 <div id="select-screen" class="screen">
@@ -139,7 +225,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#050510;font-family:
     <button class="diff-btn" data-diff="hard">HARD</button>
   </div>
   <button class="btn" id="fight-btn" disabled>FIGHT</button>
-  <div class="controls-hint">WASD MOVE · SPACE DODGE · J LIGHT · K HEAVY · L BLOCK · I SUPER<br/>J → J → K COMBO STRING</div>
+  <div class="controls-hint">左搖桿移動 · 右鍵：輕攻 / 重攻 / 閃避 / 防禦 / 大招<br/>輕→輕→重 = 三連段 · 建議橫向遊玩</div>
 </div>
 
 <!-- VICTORY -->
@@ -166,6 +252,20 @@ html,body{width:100%;height:100%;overflow:hidden;background:#050510;font-family:
     </div>
   </div>
   <div class="combo-box" id="combo-box"><div class="combo-n" id="combo-n">0</div><div class="combo-l">HIT COMBO</div><div class="combo-d" id="combo-d">0 DMG</div></div>
+</div>
+
+<!-- MOBILE TOUCH CONTROLS -->
+<div id="touch-ui">
+  <div class="t-zone left">
+    <div id="stick"><div id="stick-knob"></div></div>
+  </div>
+  <div class="t-zone right" style="width:210px;height:170px">
+    <button class="abtn" id="btn-super" type="button">超<br/><small>SUPER</small></button>
+    <button class="abtn" id="btn-dodge" type="button">閃<br/><small>DODGE</small></button>
+    <button class="abtn" id="btn-block" type="button">防<br/><small>BLOCK</small></button>
+    <button class="abtn" id="btn-heavy" type="button">重<br/><small>HEAVY</small></button>
+    <button class="abtn" id="btn-light" type="button">輕<br/><small>LIGHT</small></button>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
@@ -1092,6 +1192,10 @@ function checkHits(attacker, defender) {
 }
 
 /* ─── Input ─── */
+const stickVec = { x: 0, y: 0 }; // -1..1 camera-relative: x=right, y=forward
+const isTouchDevice = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+let touchUiForced = isTouchDevice;
+
 window.addEventListener('keydown', e => {
   const k = e.code || ({
     'w':'KeyW','a':'KeyA','s':'KeyS','d':'KeyD',' ':'Space',
@@ -1112,10 +1216,128 @@ window.addEventListener('keyup', e => {
   if (k) keys[k] = false;
 });
 
+function pressKey(code) {
+  if (!keys[code]) justPressed[code] = true;
+  keys[code] = true;
+}
+function releaseKey(code) {
+  keys[code] = false;
+}
+
 function consumePress(code) {
   if (justPressed[code]) { justPressed[code] = false; return true; }
   return false;
 }
+
+/* ─── Touch controls ─── */
+(function setupTouchControls() {
+  const touchUi = document.getElementById('touch-ui');
+  const stick = document.getElementById('stick');
+  const knob = document.getElementById('stick-knob');
+  const btnMap = {
+    'btn-light': 'KeyJ',
+    'btn-heavy': 'KeyK',
+    'btn-dodge': 'Space',
+    'btn-block': 'KeyL',
+    'btn-super': 'KeyI'
+  };
+  let stickId = null;
+
+  function setStickFromTouch(clientX, clientY) {
+    const rect = stick.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    let dx = clientX - cx;
+    let dy = clientY - cy;
+    const maxR = rect.width * 0.38;
+    const len = Math.hypot(dx, dy) || 1;
+    if (len > maxR) { dx = dx / len * maxR; dy = dy / len * maxR; }
+    knob.style.transform = `translate(${dx}px, ${dy}px)`;
+    stickVec.x = dx / maxR;
+    stickVec.y = -dy / maxR; // up on screen = forward
+    const dead = 0.18;
+    if (Math.abs(stickVec.x) < dead) stickVec.x = 0;
+    if (Math.abs(stickVec.y) < dead) stickVec.y = 0;
+  }
+  function resetStick() {
+    stickId = null;
+    stickVec.x = 0; stickVec.y = 0;
+    knob.style.transform = 'translate(0,0)';
+  }
+
+  stick.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const t = e.changedTouches[0];
+    stickId = t.identifier;
+    setStickFromTouch(t.clientX, t.clientY);
+  }, { passive: false });
+  stick.addEventListener('touchmove', e => {
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+      if (t.identifier === stickId) setStickFromTouch(t.clientX, t.clientY);
+    }
+  }, { passive: false });
+  const endStick = e => {
+    for (const t of e.changedTouches) {
+      if (t.identifier === stickId) resetStick();
+    }
+  };
+  stick.addEventListener('touchend', endStick, { passive: false });
+  stick.addEventListener('touchcancel', endStick, { passive: false });
+
+  // Also allow mouse for desktop testing of touch UI
+  let mouseStick = false;
+  stick.addEventListener('mousedown', e => {
+    mouseStick = true;
+    setStickFromTouch(e.clientX, e.clientY);
+  });
+  window.addEventListener('mousemove', e => {
+    if (mouseStick) setStickFromTouch(e.clientX, e.clientY);
+  });
+  window.addEventListener('mouseup', () => {
+    if (mouseStick) { mouseStick = false; resetStick(); }
+  });
+
+  Object.keys(btnMap).forEach(id => {
+    const el = document.getElementById(id);
+    const code = btnMap[id];
+    const down = e => {
+      e.preventDefault();
+      el.classList.add('held');
+      pressKey(code);
+    };
+    const up = e => {
+      e.preventDefault();
+      el.classList.remove('held');
+      releaseKey(code);
+    };
+    el.addEventListener('touchstart', down, { passive: false });
+    el.addEventListener('touchend', up, { passive: false });
+    el.addEventListener('touchcancel', up, { passive: false });
+    el.addEventListener('mousedown', down);
+    el.addEventListener('mouseup', up);
+    el.addEventListener('mouseleave', up);
+  });
+
+  // Prevent page gestures
+  document.addEventListener('gesturestart', e => e.preventDefault());
+  document.addEventListener('dblclick', e => e.preventDefault());
+
+  window.showTouchUI = function(on) {
+    // Always show on-screen controls during fight (mobile-first); keyboard still works
+    touchUi.classList.toggle('show', !!on);
+  };
+  if (isTouchDevice) touchUiForced = true;
+})();
+
+function updateOrientTip() {
+  const tip = document.getElementById('orient-tip');
+  const fighting = gamePhase === 'fight' || gamePhase === 'intro' || gamePhase === 'ko';
+  const portrait = window.matchMedia('(orientation: portrait)').matches && Math.min(innerWidth, innerHeight) < 700;
+  tip.classList.toggle('show', fighting && portrait);
+}
+window.addEventListener('resize', updateOrientTip);
+window.addEventListener('orientationchange', () => setTimeout(updateOrientTip, 100));
 
 /* ─── Player control ─── */
 function updatePlayer(f, opp, dt) {
@@ -1133,12 +1355,11 @@ function updatePlayer(f, opp, dt) {
         return;
       }
     }
-    // blocking held during recovery? no
     f.moveIntent.set(0, 0, 0);
     return;
   }
 
-  // Camera-relative movement (camera sits at yaw behind the action)
+  // Camera-relative movement (keyboard + virtual stick)
   const forward = new THREE.Vector3(-Math.sin(camYaw), 0, -Math.cos(camYaw));
   const right = new THREE.Vector3(Math.cos(camYaw), 0, -Math.sin(camYaw));
 
@@ -1147,6 +1368,11 @@ function updatePlayer(f, opp, dt) {
   if (keys['KeyS']) { mx -= forward.x; mz -= forward.z; }
   if (keys['KeyA']) { mx -= right.x; mz -= right.z; }
   if (keys['KeyD']) { mx += right.x; mz += right.z; }
+  // Analog stick overlays / adds
+  if (stickVec.x !== 0 || stickVec.y !== 0) {
+    mx += forward.x * stickVec.y + right.x * stickVec.x;
+    mz += forward.z * stickVec.y + right.z * stickVec.x;
+  }
   const len = Math.hypot(mx, mz);
   if (len > 0) { mx /= len; mz /= len; }
   f.moveIntent.set(mx, 0, mz);
@@ -1172,7 +1398,6 @@ function updatePlayer(f, opp, dt) {
     dd.normalize().multiplyScalar(a.dodgeDist / a.dodgeDur);
     f.vel.copy(dd);
     burstParticles(f.pos.clone(), ARCH[f.arch].rim, 8, 3);
-    // Dodge afterimages
     for (let i = 0; i < 3; i++) {
       const ghost = new THREE.Mesh(
         new THREE.BoxGeometry(0.6 * a.scale, 1.6 * a.scale, 0.35 * a.scale),
@@ -1510,7 +1735,8 @@ function updateCamera(dt) {
     camera.updateProjectionMatrix();
     return;
   } else {
-    camera.fov = THREE.MathUtils.lerp(camera.fov, 50, 1 - Math.pow(0.05, dt));
+    const mobileFov = (innerHeight < 500 || innerWidth < 900) ? 58 : 50;
+    camera.fov = THREE.MathUtils.lerp(camera.fov, mobileFov, 1 - Math.pow(0.05, dt));
     camera.updateProjectionMatrix();
   }
 
@@ -1548,10 +1774,11 @@ function updateCamera(dt) {
   while (dy < -Math.PI) dy += Math.PI * 2;
   camYaw += dy * (1 - Math.pow(0.08, dt));
 
-  // Distance based on separation
-  const desiredDist = THREE.MathUtils.clamp(8 + sep * 0.65, 9, 18);
+  // Distance based on separation + mobile tighter framing
+  const mobile = innerWidth < 900 || innerHeight < 500;
+  const desiredDist = THREE.MathUtils.clamp((mobile ? 7 : 8) + sep * (mobile ? 0.55 : 0.65), mobile ? 8 : 9, mobile ? 15 : 18);
   camDist += (desiredDist - camDist) * (1 - Math.pow(0.1, dt));
-  camHeight += ((4.2 + sep * 0.15) - camHeight) * (1 - Math.pow(0.1, dt));
+  camHeight += (((mobile ? 3.6 : 4.2) + sep * 0.15) - camHeight) * (1 - Math.pow(0.1, dt));
 
   // Position behind mid along camYaw
   const ideal = new THREE.Vector3(
@@ -1601,7 +1828,9 @@ function updateHUD() {
   setBar('p2-sp', p2.sp / MAX_SP);
   document.getElementById('p1-sp').classList.toggle('ready', p1.sp >= MAX_SP);
   document.getElementById('p2-sp').classList.toggle('ready', p2.sp >= MAX_SP);
+  document.getElementById('btn-super').classList.toggle('ready', p1.sp >= MAX_SP);
   document.getElementById('timer').textContent = String(Math.max(0, Math.ceil(roundTimer)));
+  updateOrientTip();
 
   const comboBox = document.getElementById('combo-box');
   if (comboCount >= 2 && comboTimer > 0) {
@@ -1653,6 +1882,8 @@ function endMatch(winner) {
   gamePhase = 'victory';
   winner.poseVictory = true;
   document.getElementById('hud').classList.remove('show');
+  if (window.showTouchUI) window.showTouchUI(false);
+  updateOrientTip();
   document.getElementById('winner-name').textContent = ARCH[winner.arch].name;
   document.getElementById('victory-screen').classList.remove('hidden');
   announce(ARCH[winner.arch].name + ' WINS');
@@ -1687,12 +1918,15 @@ function startRound() {
   document.getElementById('round-label').textContent = 'ROUND ' + round;
   document.getElementById('hud').classList.add('show');
   document.getElementById('victory-screen').classList.add('hidden');
+  if (window.showTouchUI) window.showTouchUI(true);
+  updateOrientTip();
   setPips();
 
   announce('ROUND ' + round);
   setTimeout(() => {
     announce('FIGHT!');
     gamePhase = 'fight';
+    updateOrientTip();
   }, 1100);
 }
 
@@ -1794,6 +2028,8 @@ document.getElementById('rematch-btn').addEventListener('click', () => {
   document.getElementById('victory-screen').classList.add('hidden');
   document.getElementById('select-screen').classList.remove('hidden');
   document.getElementById('hud').classList.remove('show');
+  if (window.showTouchUI) window.showTouchUI(false);
+  updateOrientTip();
   gamePhase = 'select';
   if (p1) { scene.remove(p1.mesh); p1 = null; }
   if (p2) { scene.remove(p2.mesh); p2 = null; }
